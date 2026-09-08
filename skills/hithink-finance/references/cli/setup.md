@@ -26,6 +26,8 @@ npm view @hithink-tech/hithink-finance-cli version
 
 `update --check` 用于比较当前安装和可用版本，不执行升级。版本正常时不要重装。需要修复或升级时先向用户说明将修改全局 npm 安装，得到授权后再使用 `hithink-finance update --repair` 或指定 `--target-version`。
 
+统一 Skill 的例行自检通过 `hithink-finance version --format json` 进入 CLI 自带检查链路，不额外调用本节命令。CLI 成功检查后缓存 24 小时，失败后冷却 6 小时，并用 5 分钟租约合并并发刷新；例行自检不等待后台结果。无新版本、刷新中、检查失败或用户禁用检查时保持静默，只有 CLI 输出 `[update]` 时才在当前任务结束后提示一次。不要用 `npm view` 绕过缓存做例行检查。
+
 ## 3. 从 npm 安装
 
 首选 npm，不默认使用源码安装：

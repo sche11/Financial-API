@@ -2,6 +2,11 @@
 
 本文件记录“同花顺金融数据服务（hithink finance）”对外可见的重要变化。版本升级与路径兼容说明见 [Monorepo 版本升级指南](docs/monorepo-migration.md)。
 
+## 2026-09-08 — 基金参数与 Agent Skill 更新体验优化
+
+- 基金查询统一使用 `thscode` 唯一定位基金，移除 `fund_type` 参数，并补充基金字段说明。
+- CLI `0.1.8` 支持将配套 Agent Skills 同步到已安装 WorkBuddy 或 QClaw 的用户级发现目录。
+
 ## 2026-08-17 — 集合竞价、特色数据与基金能力扩展
 
 - 新增集合竞价实时/终态快照、集合竞价短期基准、跌停池和炸板池。

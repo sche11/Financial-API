@@ -97,7 +97,7 @@ hithink-finance market snapshot --thscodes 600519.SH --format json
 hithink-finance market auction-snapshot --thscodes 600519.SH --stage final --format json
 hithink-finance financials income --thscode 600519.SH --limit 4 --format json
 hithink-finance index constituents --thscode 000300.SH --format json
-hithink-finance fund nav --fund-type otc --thscode 025480.OF --range year --format json
+hithink-finance fund nav --thscode 025480.OF --range year --format json
 hithink-finance fund manager-detail --manager-id <id> --format json
 hithink-finance valuation snapshot --thscodes 600519.SH,000001.SZ --format json
 hithink-finance special limit-break-pool --size 50 --format json
@@ -171,7 +171,7 @@ CLI 按以下顺序解析非敏感配置：
 npx skills add HiThink-Tech/Financial-API --skill hithink-finance -g --yes
 ```
 
-CLI 包还可以通过 `hithink-finance skills status|sync|remove` 管理命令专用的领域 Skills。`status` 只陈述包内 manifest 和规范目录，不会把尚未检查的 Agent 发现目录误报为已安装；`sync --repair` 会执行覆盖同步并在结果中标记修复模式。它们补充 CLI 参数路由，不替代统一 `hithink-finance` Skill，也不是上游 API 文档的事实源。
+CLI 包还可以通过 `hithink-finance skills status|sync|remove` 管理命令专用的领域 Skills。`status` 只陈述包内 manifest 和规范目录，不会把尚未检查的 Agent 发现目录误报为已安装；`sync --repair` 会执行覆盖同步并在结果中标记修复模式。检测到已安装的 WorkBuddy 或 QClaw 时，同一同步链路还会校验并更新 `~/.workbuddy/skills` 或 `~/.qclaw/skills`，但不会创建未安装客户端的根目录。它们补充 CLI 参数路由，不替代统一 `hithink-finance` Skill，也不是上游 API 文档的事实源。
 
 ## 开发与验证
 

@@ -187,7 +187,7 @@ def test_special_data_and_index_edge_contracts_are_preserved() -> None:
     assert "5003" not in index
 
 
-def test_fund_and_meta_contracts_preserve_backend_boundaries() -> None:
+def test_fund_and_meta_contracts_preserve_published_boundaries() -> None:
     fund = read("endpoints-fund.md")
     meta = read("endpoints-meta.md")
     entry = read("README.md")
@@ -196,9 +196,6 @@ def test_fund_and_meta_contracts_preserve_backend_boundaries() -> None:
     )[0]
 
     for value in (
-        "otc",
-        "exchange",
-        "reits",
         "unit,adj",
         "twoyear",
         "fund_name",
@@ -294,6 +291,29 @@ def test_fund_news_and_historical_indicators_use_the_runtime_payload_shape() -> 
 
     assert "`data` 仅包含 `timestamp` 和 `item[]`" in indicators
     assert "不返回顶层 `thscode`、`interval`" in indicators
+    assert "fund_type=" not in fund
+    assert "`fund_type`（必填）" not in fund
+    assert "使用带市场后缀的单个 `thscode` 唯一定位基金" in fund
+    assert "查询基金净值波动、趋势强弱与估值百分位序列。" in indicators
+    for field, meaning in (
+        ("rsi_pct", "净值波动（RSI）"),
+        ("donchian_channel", "趋势强弱（唐奇安通道）"),
+        (
+            "track_index_pe_ttm_five_year_percentile",
+            "估值百分位（跟踪指数 PE TTM 五年分位）",
+        ),
+    ):
+        assert f"`{field}`：{meaning}" in indicators
+
+    capability_map = read("capability-map.md")
+    indicator_capability = next(
+        line
+        for line in capability_map.splitlines()
+        if "GET /api/fund/performance/indicators-historical" in line
+    )
+    for keyword in ("净值波动", "趋势强弱", "估值百分位"):
+        assert keyword in indicator_capability
+
     response_shape = next(line for line in news.splitlines() if line.startswith("`data` 含"))
     assert "`total`" not in response_shape
     assert "`has_more=false`" in news

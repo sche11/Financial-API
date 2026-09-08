@@ -10,18 +10,17 @@
 
 ```bash
 hithink-finance schema fund.nav --format json
-hithink-finance fund nav --fund-type <type> --thscode <code> --format json
+hithink-finance fund nav --thscode <code> --format json
 ```
 
 ## 参数选择策略
 
-| 参数                 | 必填 | 说明                                                                                                        |
-| -------------------- | ---- | ----------------------------------------------------------------------------------------------------------- |
-| `--fund-type <type>` | 是   | fund type；可选: otc, exchange, reits；上游参数: fund_type                                                  |
-| `--thscode <code>`   | 是   | single fund thscode                                                                                         |
-| `--range <range>`    | 否   | NAV history range; omit for the latest point；可选: week, month, tmonth, hyear, year, twoyear, tyear, fyear |
-| `--nav-type <type>`  | 否   | NAV fields to return；可选: unit, adj, unit,adj；默认: unit,adj；上游参数: nav_type                         |
-| `--output <path>`    | 否   | write the full JSON response envelope to a file                                                             |
+| 参数                | 必填 | 说明                                                                                                        |
+| ------------------- | ---- | ----------------------------------------------------------------------------------------------------------- |
+| `--thscode <code>`  | 是   | single fund thscode                                                                                         |
+| `--range <range>`   | 否   | NAV history range; omit for the latest point；可选: week, month, tmonth, hyear, year, twoyear, tyear, fyear |
+| `--nav-type <type>` | 否   | NAV fields to return；可选: unit, adj, unit,adj；默认: unit,adj；上游参数: nav_type                         |
+| `--output <path>`   | 否   | write the full JSON response envelope to a file                                                             |
 
 ## 窗口与分页
 

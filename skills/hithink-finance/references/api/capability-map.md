@@ -83,7 +83,7 @@
 | `GET /api/fund/market/historical` | ETF 历史日线 | 「510300.SH 最近一年的日线行情」 |
 | `GET /api/fund/companies/detail` | 基金公司详情 | 「这家基金公司的管理规模和负责人是谁」 |
 | `GET /api/fund/portfolio/industry-allocation` | 行业配置 | 「这只基金主要配置哪些行业」 |
-| `GET /api/fund/performance/indicators-historical` | 指定日期区间的历史业绩指标 | 「近三年风险收益指标如何变化」 |
+| `GET /api/fund/performance/indicators-historical` | 查询基金净值波动、趋势强弱与估值百分位序列 | 「查看近三年的净值波动、趋势强弱和估值百分位」 |
 | `GET /api/fund/performance/drawdowns` | 回撤区间 | 「这只基金历史主要回撤有哪些」 |
 | `GET /api/fund/holders/top` | 前十大持有人 | 「这只基金前十大持有人是谁」 |
 | `GET /api/fund/corporate-actions/dividends` | 分红记录 | 「这只基金历次分红情况」 |

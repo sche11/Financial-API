@@ -6,19 +6,27 @@ const root = path.resolve(import.meta.dirname, '..');
 const globalInstall =
   !root.includes(`${path.sep}node_modules${path.sep}.pnpm${path.sep}`) &&
   root.includes(`${path.sep}node_modules${path.sep}`);
-if (globalInstall && existsSync(path.join(root, 'node_modules', 'skills', 'bin', 'cli.mjs'))) {
+if (globalInstall && existsSync(path.join(root, 'dist', 'cli', 'main.js'))) {
   const result = spawnSync(
     process.execPath,
     [
-      path.join(root, 'node_modules', 'skills', 'bin', 'cli.mjs'),
-      'add',
-      path.join(root, 'skills'),
-      '--global',
-      '--copy',
-      '--all',
-      '--full-depth',
+      path.join(root, 'dist', 'cli', 'main.js'),
+      'skills',
+      'sync',
+      '--repair',
+      '--yes',
+      '--format',
+      'json',
     ],
-    { stdio: 'inherit', env: { ...process.env, DISABLE_TELEMETRY: '1' }, windowsHide: true },
+    {
+      stdio: 'inherit',
+      env: {
+        ...process.env,
+        DISABLE_TELEMETRY: '1',
+        HITHINK_FINANCE_NO_UPDATE_CHECK: '1',
+      },
+      windowsHide: true,
+    },
   );
   if (result.status !== 0)
     process.stderr.write(

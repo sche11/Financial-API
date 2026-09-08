@@ -120,6 +120,8 @@ Skill 是 Agent 使用本项目的统一说明书，包含：
    npx skills add HiThink-Tech/Financial-API --skill hithink-finance -g --yes
    ```
 
+   通过该方式安装后，Skill 会在每个 Agent 会话第一次使用时默认静默检查并更新自身；同一会话不重复检查，无更新或失败时不打扰当前任务。设置 `HITHINK_FINANCE_NO_SKILL_UPDATE=1` 可关闭自动更新；安装目录与追踪哈希不一致时不会执行。新版本从下一次 Agent 会话开始生效。
+
 2. **无网络条件：从 [Skill Hub](https://www.skillhub.cn/skills/hithink-finance) 安装**
 
    **将提示词发送给你的 AI 安装该 Skill：**

@@ -63,7 +63,7 @@ test('renders localized auth and remote command help in Chinese', async () => {
     '--help',
   ]);
   expect(fund.stdout).toContain('查询基金档案详情');
-  expect(fund.stdout).toContain('基金类型');
+  expect(fund.stdout).toContain('单只基金 thscode');
 
   const valuation = await execa('node', [
     'dist/cli/main.js',

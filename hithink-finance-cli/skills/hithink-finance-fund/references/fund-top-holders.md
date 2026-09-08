@@ -10,17 +10,16 @@
 
 ```bash
 hithink-finance schema fund.top-holders --format json
-hithink-finance fund top-holders --fund-type <type> --thscode <code> --format json
+hithink-finance fund top-holders --thscode <code> --format json
 ```
 
 ## 参数选择策略
 
-| 参数                 | 必填 | 说明                                                       |
-| -------------------- | ---- | ---------------------------------------------------------- |
-| `--fund-type <type>` | 是   | fund type；可选: otc, exchange, reits；上游参数: fund_type |
-| `--thscode <code>`   | 是   | single fund thscode                                        |
-| `--limit <number>`   | 否   | maximum holders (1-10)                                     |
-| `--output <path>`    | 否   | write the full JSON response envelope to a file            |
+| 参数               | 必填 | 说明                                            |
+| ------------------ | ---- | ----------------------------------------------- |
+| `--thscode <code>` | 是   | single fund thscode                             |
+| `--limit <number>` | 否   | maximum holders (1-10)                          |
+| `--output <path>`  | 否   | write the full JSON response envelope to a file |
 
 ## 窗口与分页
 

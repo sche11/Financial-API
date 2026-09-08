@@ -222,7 +222,7 @@ def cmd_index_historical(args):
 
 def _fund_detail_args(fn):
     def _run(args):
-        return fn(args.thscode, fund_type=args.fund_type)
+        return fn(args.thscode)
 
     return _run
 
@@ -230,7 +230,6 @@ def _fund_detail_args(fn):
 def cmd_fund_holders(args):
     return fund_holders_detail(
         args.thscode,
-        fund_type=args.fund_type,
         merge_scope=args.merge_scope,
     )
 
@@ -238,7 +237,6 @@ def cmd_fund_holders(args):
 def cmd_fund_nav(args):
     return fund_performance_nav(
         args.thscode,
-        fund_type=args.fund_type,
         range=args.range,
         nav_type=args.nav_type,
     )
@@ -263,14 +261,12 @@ def cmd_fund_company_detail(args):
 
 def cmd_fund_indicators_history(args):
     return fund_performance_indicators_historical(
-        args.thscode, args.start_ms, args.end_ms, fund_type=args.fund_type
+        args.thscode, args.start_ms, args.end_ms
     )
 
 
 def cmd_fund_top_holders(args):
-    return fund_holders_top(
-        args.thscode, fund_type=args.fund_type, limit=args.limit
-    )
+    return fund_holders_top(args.thscode, limit=args.limit)
 
 
 def _fund_manager_args(fn, *, with_range=False):
@@ -285,7 +281,6 @@ def _fund_manager_args(fn, *, with_range=False):
 def cmd_fund_news(args):
     return fund_news_article_list(
         args.thscode,
-        fund_type=args.fund_type,
         limit=args.limit,
         offset=args.offset,
     )
@@ -301,7 +296,6 @@ def _fund_portfolio_history_args(fn):
             args.thscode,
             args.report_type,
             args.end_date,
-            fund_type=args.fund_type,
         )
 
     return _run
@@ -311,7 +305,6 @@ def _fund_report_dates_args(fn):
     def _run(args):
         return fn(
             args.thscode,
-            fund_type=args.fund_type,
             report_type=args.report_type,
         )
 
@@ -581,12 +574,10 @@ def build_parser() -> argparse.ArgumentParser:
         ),
     ):
         p = sub.add_parser(name, help=help_text)
-        p.add_argument("--fund-type", dest="fund_type", required=True, choices=["otc", "exchange", "reits"])
         p.add_argument("--thscode", required=True)
         p.set_defaults(func=handler)
 
     p = sub.add_parser("fund-holders", help="fund holder structure")
-    p.add_argument("--fund-type", dest="fund_type", required=True, choices=["otc", "exchange", "reits"])
     p.add_argument("--thscode", required=True)
     p.add_argument(
         "--merge-scope",
@@ -597,7 +588,6 @@ def build_parser() -> argparse.ArgumentParser:
     p.set_defaults(func=cmd_fund_holders)
 
     p = sub.add_parser("fund-nav", help="fund net asset value series")
-    p.add_argument("--fund-type", dest="fund_type", required=True, choices=["otc", "exchange", "reits"])
     p.add_argument("--thscode", required=True)
     p.add_argument(
         "--range",
@@ -633,19 +623,16 @@ def build_parser() -> argparse.ArgumentParser:
         ("fund-asset-allocation", "fund asset allocation", _fund_detail_args(fund_portfolio_asset_allocation)),
     ):
         p = sub.add_parser(name, help=help_text)
-        p.add_argument("--fund-type", dest="fund_type", required=True, choices=["otc", "exchange", "reits"])
         p.add_argument("--thscode", required=True)
         p.set_defaults(func=handler)
 
     p = sub.add_parser("fund-indicators-history", help="historical fund performance indicators")
-    p.add_argument("--fund-type", dest="fund_type", required=True, choices=["otc", "exchange", "reits"])
     p.add_argument("--thscode", required=True)
     p.add_argument("--start-ms", dest="start_ms", type=int, required=True)
     p.add_argument("--end-ms", dest="end_ms", type=int, required=True)
     p.set_defaults(func=cmd_fund_indicators_history)
 
     p = sub.add_parser("fund-top-holders", help="top fund holders")
-    p.add_argument("--fund-type", dest="fund_type", required=True, choices=["otc", "exchange", "reits"])
     p.add_argument("--thscode", required=True)
     p.add_argument("--limit", type=int)
     p.set_defaults(func=cmd_fund_top_holders)
@@ -663,7 +650,6 @@ def build_parser() -> argparse.ArgumentParser:
         p.set_defaults(func=_fund_manager_args(handler, with_range=needs_range))
 
     p = sub.add_parser("fund-news", help="public fund article metadata")
-    p.add_argument("--fund-type", dest="fund_type", required=True, choices=["otc", "exchange", "reits"])
     p.add_argument("--thscode", required=True)
     p.add_argument("--limit", type=int, default=20)
     p.add_argument("--offset")
@@ -678,7 +664,6 @@ def build_parser() -> argparse.ArgumentParser:
         ("fund-bond-history", "historical fund bond holdings", _fund_portfolio_history_args(fund_portfolio_bond_history)),
     ):
         p = sub.add_parser(name, help=help_text)
-        p.add_argument("--fund-type", dest="fund_type", required=True, choices=["otc", "exchange", "reits"])
         p.add_argument("--thscode", required=True)
         p.add_argument("--report-type", dest="report_type", required=True)
         p.add_argument("--end-date", dest="end_date", required=True)
@@ -689,7 +674,6 @@ def build_parser() -> argparse.ArgumentParser:
         ("fund-bond-report-dates", "fund bond holding report dates", _fund_report_dates_args(fund_portfolio_bond_report_dates)),
     ):
         p = sub.add_parser(name, help=help_text)
-        p.add_argument("--fund-type", dest="fund_type", required=True, choices=["otc", "exchange", "reits"])
         p.add_argument("--thscode", required=True)
         p.add_argument("--report-type", dest="report_type")
         p.set_defaults(func=handler)

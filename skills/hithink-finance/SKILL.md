@@ -40,13 +40,33 @@ description: 当用户或 Agent 需要通过同花顺金融数据服务获取、
 2. 处理名称、代码和口径等用户输入，不要求用户先提供技术参数。
 3. 只做无副作用的当前环境探测，不要求用户重复安装：
    - 是否已配置统一凭据：先检查 `HITHINK_FINANCE_API_KEY`，再检查用户级 `credentials.env`，只报告来源和存在状态，不显示值。
-   - 当前会话是否已连接 `hithink-finance-a-share`、`hithink-finance-a-share-index` 或 `hithink-finance-meta` MCP。
-   - PATH 中是否存在 `hithink-finance`；存在时读取 `hithink-finance --version`，不要先升级。
+   - 当前会话是否已连接 `hithink-finance-a-share`、`hithink-finance-a-share-index`、`hithink-finance-meta` 或 `hithink-finance-fund` MCP。
+   - PATH 中是否存在 `hithink-finance`；存在时运行 `hithink-finance version --format json` 读取版本并触发 CLI 自带的低频后台更新检查，不要使用绕过该检查的 `--version` 快速路径，也不要先升级。
    - 用户是否正在 Python/Notebook 项目、是否已有 `marketdb`，或是否明确要求 Python。
    - 是否只有 HTTP/curl 环境，或用户明确要求自行集成。
 4. 根据任务和能力边界选择一种主路径；不要为了“完整”而同时安装或探测全部工具。
 5. 只读取下表对应的一个一级 reference，再由该入口路由到其子目录契约。
 6. 执行后报告数据源、时间范围、口径、行数、输出路径与线上验证边界。
+
+## Skill 低频自更新引导
+
+每个 Agent 会话第一次触发本 Skill 时，默认静默尝试一次统一 Skill 更新；同一会话后续调用不再检查。用户设置 `HITHINK_FINANCE_NO_SKILL_UPDATE=1` 时跳过。
+
+```bash
+npx --yes skills update hithink-finance --global --yes
+```
+
+- 仅在当前 Skill 通过公开仓库 `HiThink-Tech/Financial-API` 追踪安装于用户级 Skills 目录，且安装目录内容与 `npx skills` 的追踪哈希一致时执行。仓库源码、项目级副本、手工复制、Skill Hub 安装、来源或哈希无法确认、已被用户修改的目录保持不变。
+- 无更新或命令失败时保持静默，不重试、不询问用户、不阻塞或改变当前金融任务。缺少 Node.js/npx 时同样静默跳过。
+- 命令确认已完成更新时，只在当前任务结果末尾追加一句“Skill 已更新，新版本将在新会话生效”；当前会话继续按已加载版本完成任务。
+- 用户明确询问更新状态、要求立即更新或需要处理本地修改时，再说明来源、影响和冲突，不得静默覆盖用户修改。
+
+## CLI 低频静默更新自检
+
+- 上述结构化 `version` 探测完成后，CLI 会读取持久化缓存；成功后 24 小时内不重复联网，失败后 6 小时内不重试，并发刷新由 5 分钟租约合并。需要刷新时在后台静默执行，不等待网络结果。
+- 自检不得阻塞当前金融任务。无缓存、后台刷新、检查失败、版本服务不可用或用户已禁用检查时，保持静默，不重试、不切换到 `npm view`、不询问用户。
+- 只有 CLI 在 stderr 输出 `[update]` 提示时，才在完成用户当前任务后追加一行简短提示，保留其中的当前版本、最新版本和检查命令；该提示的 24 小时冷却由 CLI 记录并控制。
+- 不自动执行升级。只有用户明确同意修改全局 npm 安装后，才进入 [CLI 安装、配置与生命周期](references/cli/setup.md) 的升级流程。
 
 ## 接入方式决策
 

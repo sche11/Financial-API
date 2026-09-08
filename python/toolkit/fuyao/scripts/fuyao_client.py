@@ -47,7 +47,6 @@ AssetType = Literal[
     "fund-lof",
     "fund-reits",
 ]
-FundType = Literal["otc", "exchange", "reits"]
 FundRange = Literal[
     "week", "month", "tmonth", "hyear", "year", "twoyear", "tyear", "fyear"
 ]
@@ -63,7 +62,6 @@ _ASSET_TYPES = {
     "fund-lof",
     "fund-reits",
 }
-_FUND_TYPES = {"otc", "exchange", "reits"}
 _FUND_RANGES = {
     "week", "month", "tmonth", "hyear", "year", "twoyear", "tyear", "fyear"
 }
@@ -191,12 +189,9 @@ def _normalize_asset_type(
     return ",".join(normalized)
 
 
-def _validate_fund_target(fund_type: str, thscode: str) -> tuple[str, str]:
-    normalized_type = fund_type.strip().lower() if isinstance(fund_type, str) else ""
-    if normalized_type not in _FUND_TYPES:
-        raise ValueError(f"fund_type must be one of otc/exchange/reits; got {fund_type!r}")
+def _validate_fund_target(thscode: str) -> str:
     _validate_thscode(thscode)
-    return normalized_type, thscode.strip().upper()
+    return thscode.strip().upper()
 
 
 def _validate_exchange_fund_code(thscode: str) -> str:
@@ -798,36 +793,28 @@ def index_prices_historical(
 # ---------------------------------------------------------------------------
 
 
-def _fund_detail(
-    path: str, thscode: str, fund_type: FundType | str
-) -> dict[str, Any]:
-    normalized_type, normalized_code = _validate_fund_target(fund_type, thscode)
-    return _get(path, {"fund_type": normalized_type, "thscode": normalized_code})
+def _fund_detail(path: str, thscode: str) -> dict[str, Any]:
+    return _get(path, {"thscode": _validate_fund_target(thscode)})
 
 
-def fund_profile_detail(
-    thscode: str, *, fund_type: FundType
-) -> dict[str, Any]:
-    """Fund profile for one explicitly typed fund target."""
-    return _fund_detail("/api/fund/profile/detail", thscode, fund_type)
+def fund_profile_detail(thscode: str) -> dict[str, Any]:
+    """Fund profile for one fund thscode."""
+    return _fund_detail("/api/fund/profile/detail", thscode)
 
 
-def fund_portfolio_holdings(
-    thscode: str, *, fund_type: FundType
-) -> dict[str, Any]:
-    """Fund portfolio holdings for one explicitly typed target."""
-    return _fund_detail("/api/fund/portfolio/holdings", thscode, fund_type)
+def fund_portfolio_holdings(thscode: str) -> dict[str, Any]:
+    """Fund portfolio holdings for one fund thscode."""
+    return _fund_detail("/api/fund/portfolio/holdings", thscode)
 
 
 def fund_performance_nav(
     thscode: str,
     *,
-    fund_type: FundType,
     range: FundRange | None = None,
     nav_type: FundNavType = "unit,adj",
 ) -> dict[str, Any]:
     """Fund NAV; omit range for the latest point."""
-    normalized_type, normalized_code = _validate_fund_target(fund_type, thscode)
+    normalized_code = _validate_fund_target(thscode)
     if range is not None and range not in _FUND_RANGES:
         raise ValueError(f"range must be one of {sorted(_FUND_RANGES)}; got {range!r}")
     if nav_type not in _FUND_NAV_TYPES:
@@ -837,7 +824,6 @@ def fund_performance_nav(
     return _get(
         "/api/fund/performance/nav",
         {
-            "fund_type": normalized_type,
             "thscode": normalized_code,
             "range": range,
             "nav_type": nav_type,
@@ -845,21 +831,18 @@ def fund_performance_nav(
     )
 
 
-def fund_performance_returns(
-    thscode: str, *, fund_type: FundType
-) -> dict[str, Any]:
-    """Fund interval-return summary for one explicitly typed target."""
-    return _fund_detail("/api/fund/performance/returns", thscode, fund_type)
+def fund_performance_returns(thscode: str) -> dict[str, Any]:
+    """Fund interval-return summary for one fund thscode."""
+    return _fund_detail("/api/fund/performance/returns", thscode)
 
 
 def fund_holders_detail(
     thscode: str,
     *,
-    fund_type: FundType,
     merge_scope: FundHolderMergeScope | str = "all",
 ) -> dict[str, Any]:
     """Fund holder structure by merged, separate, or all disclosure scopes."""
-    normalized_type, normalized_code = _validate_fund_target(fund_type, thscode)
+    normalized_code = _validate_fund_target(thscode)
     normalized_scope = (
         merge_scope.strip().lower() if isinstance(merge_scope, str) else ""
     )
@@ -871,7 +854,6 @@ def fund_holders_detail(
     return _get(
         "/api/fund/holders/detail",
         {
-            "fund_type": normalized_type,
             "thscode": normalized_code,
             "merge_scope": normalized_scope,
         },
@@ -928,23 +910,17 @@ def fund_companies_detail(company_id: str) -> dict[str, Any]:
     )
 
 
-def fund_portfolio_industry_allocation(
-    thscode: str, *, fund_type: FundType
-) -> dict[str, Any]:
-    return _fund_detail(
-        "/api/fund/portfolio/industry-allocation", thscode, fund_type
-    )
+def fund_portfolio_industry_allocation(thscode: str) -> dict[str, Any]:
+    return _fund_detail("/api/fund/portfolio/industry-allocation", thscode)
 
 
 def fund_performance_indicators_historical(
     thscode: str,
     start_ms: int,
     end_ms: int,
-    *,
-    fund_type: FundType,
 ) -> dict[str, Any]:
     """Return DataPayload data with timestamp and item only; no top-level thscode/interval."""
-    normalized_type, normalized_code = _validate_fund_target(fund_type, thscode)
+    normalized_code = _validate_fund_target(thscode)
     if not isinstance(start_ms, int) or not isinstance(end_ms, int):
         raise ValueError("start_ms / end_ms must be int milliseconds")
     if end_ms < start_ms:
@@ -954,7 +930,6 @@ def fund_performance_indicators_historical(
     return _get(
         "/api/fund/performance/indicators-historical",
         {
-            "fund_type": normalized_type,
             "thscode": normalized_code,
             "start": start_ms,
             "end": end_ms,
@@ -962,56 +937,40 @@ def fund_performance_indicators_historical(
     )
 
 
-def fund_performance_drawdowns(
-    thscode: str, *, fund_type: FundType
-) -> dict[str, Any]:
-    return _fund_detail("/api/fund/performance/drawdowns", thscode, fund_type)
+def fund_performance_drawdowns(thscode: str) -> dict[str, Any]:
+    return _fund_detail("/api/fund/performance/drawdowns", thscode)
 
 
 def fund_holders_top(
-    thscode: str, *, fund_type: FundType, limit: int | None = None
+    thscode: str, *, limit: int | None = None
 ) -> dict[str, Any]:
-    normalized_type, normalized_code = _validate_fund_target(fund_type, thscode)
+    normalized_code = _validate_fund_target(thscode)
     if limit is not None and (not isinstance(limit, int) or not 1 <= limit <= 10):
         raise ValueError("limit must be in [1, 10]")
     return _get(
         "/api/fund/holders/top",
-        {"fund_type": normalized_type, "thscode": normalized_code, "limit": limit},
+        {"thscode": normalized_code, "limit": limit},
     )
 
 
-def fund_corporate_actions_dividends(
-    thscode: str, *, fund_type: FundType
-) -> dict[str, Any]:
-    return _fund_detail(
-        "/api/fund/corporate-actions/dividends", thscode, fund_type
-    )
+def fund_corporate_actions_dividends(thscode: str) -> dict[str, Any]:
+    return _fund_detail("/api/fund/corporate-actions/dividends", thscode)
 
 
-def fund_diagnostics_detail(
-    thscode: str, *, fund_type: FundType
-) -> dict[str, Any]:
-    return _fund_detail("/api/fund/diagnostics/detail", thscode, fund_type)
+def fund_diagnostics_detail(thscode: str) -> dict[str, Any]:
+    return _fund_detail("/api/fund/diagnostics/detail", thscode)
 
 
-def fund_financials_indicators(
-    thscode: str, *, fund_type: FundType
-) -> dict[str, Any]:
-    return _fund_detail("/api/fund/financials/indicators", thscode, fund_type)
+def fund_financials_indicators(thscode: str) -> dict[str, Any]:
+    return _fund_detail("/api/fund/financials/indicators", thscode)
 
 
-def fund_financials_income_statements(
-    thscode: str, *, fund_type: FundType
-) -> dict[str, Any]:
-    return _fund_detail(
-        "/api/fund/financials/income-statements", thscode, fund_type
-    )
+def fund_financials_income_statements(thscode: str) -> dict[str, Any]:
+    return _fund_detail("/api/fund/financials/income-statements", thscode)
 
 
-def fund_financials_balance_sheets(
-    thscode: str, *, fund_type: FundType
-) -> dict[str, Any]:
-    return _fund_detail("/api/fund/financials/balance-sheets", thscode, fund_type)
+def fund_financials_balance_sheets(thscode: str) -> dict[str, Any]:
+    return _fund_detail("/api/fund/financials/balance-sheets", thscode)
 
 
 def _fund_manager(path: str, manager_id: str) -> dict[str, Any]:
@@ -1049,12 +1008,11 @@ def fund_managers_detail(manager_id: str) -> dict[str, Any]:
 def fund_news_article_list(
     thscode: str,
     *,
-    fund_type: FundType,
     limit: int = 20,
     offset: str | None = None,
 ) -> dict[str, Any]:
     """Return cursor-paginated news data with has_more and no total field."""
-    normalized_type, normalized_code = _validate_fund_target(fund_type, thscode)
+    normalized_code = _validate_fund_target(thscode)
     if not isinstance(limit, int) or not 1 <= limit <= 100:
         raise ValueError("limit must be in [1, 100]")
     if offset is not None and (not isinstance(offset, str) or not offset):
@@ -1062,7 +1020,6 @@ def fund_news_article_list(
     return _get(
         "/api/fund/news/article-list",
         {
-            "fund_type": normalized_type,
             "thscode": normalized_code,
             "limit": limit,
             "offset": offset,
@@ -1083,13 +1040,11 @@ def _fund_portfolio_history(
     thscode: str,
     report_type: str,
     end_date: str,
-    fund_type: FundType,
 ) -> dict[str, Any]:
-    normalized_type, normalized_code = _validate_fund_target(fund_type, thscode)
+    normalized_code = _validate_fund_target(thscode)
     return _get(
         path,
         {
-            "fund_type": normalized_type,
             "thscode": normalized_code,
             "report_type": _required_identifier(report_type, "report_type"),
             "end_date": _required_identifier(end_date, "end_date"),
@@ -1098,42 +1053,38 @@ def _fund_portfolio_history(
 
 
 def fund_portfolio_stock_history(
-    thscode: str, report_type: str, end_date: str, *, fund_type: FundType
+    thscode: str, report_type: str, end_date: str
 ) -> dict[str, Any]:
     return _fund_portfolio_history(
         "/api/fund/portfolio/stock-history",
         thscode,
         report_type,
         end_date,
-        fund_type,
     )
 
 
 def fund_portfolio_bond_history(
-    thscode: str, report_type: str, end_date: str, *, fund_type: FundType
+    thscode: str, report_type: str, end_date: str
 ) -> dict[str, Any]:
     return _fund_portfolio_history(
         "/api/fund/portfolio/bond-history",
         thscode,
         report_type,
         end_date,
-        fund_type,
     )
 
 
 def _fund_report_dates(
     path: str,
     thscode: str,
-    fund_type: FundType,
     report_type: str | None,
 ) -> dict[str, Any]:
-    normalized_type, normalized_code = _validate_fund_target(fund_type, thscode)
+    normalized_code = _validate_fund_target(thscode)
     if report_type is not None:
         report_type = _required_identifier(report_type, "report_type")
     return _get(
         path,
         {
-            "fund_type": normalized_type,
             "thscode": normalized_code,
             "report_type": report_type,
         },
@@ -1141,25 +1092,23 @@ def _fund_report_dates(
 
 
 def fund_portfolio_stock_report_dates(
-    thscode: str, *, fund_type: FundType, report_type: str | None = None
+    thscode: str, *, report_type: str | None = None
 ) -> dict[str, Any]:
     return _fund_report_dates(
-        "/api/fund/portfolio/stock-report-dates", thscode, fund_type, report_type
+        "/api/fund/portfolio/stock-report-dates", thscode, report_type
     )
 
 
 def fund_portfolio_bond_report_dates(
-    thscode: str, *, fund_type: FundType, report_type: str | None = None
+    thscode: str, *, report_type: str | None = None
 ) -> dict[str, Any]:
     return _fund_report_dates(
-        "/api/fund/portfolio/bond-report-dates", thscode, fund_type, report_type
+        "/api/fund/portfolio/bond-report-dates", thscode, report_type
     )
 
 
-def fund_portfolio_asset_allocation(
-    thscode: str, *, fund_type: FundType
-) -> dict[str, Any]:
-    return _fund_detail("/api/fund/portfolio/asset-allocation", thscode, fund_type)
+def fund_portfolio_asset_allocation(thscode: str) -> dict[str, Any]:
+    return _fund_detail("/api/fund/portfolio/asset-allocation", thscode)
 
 
 # ---------------------------------------------------------------------------

@@ -27,3 +27,15 @@ test('ships exactly ten valid Skills with shared dependency rules', async () => 
     expect(text).toContain('--format json');
   }
 });
+
+test('documents dedicated WorkBuddy and QClaw Skill synchronization', async () => {
+  const text = await readFile(
+    path.resolve('skills', 'hithink-finance-shared', 'references', 'skills-management.md'),
+    'utf8',
+  );
+
+  expect(text).toContain('~/.workbuddy/skills');
+  expect(text).toContain('~/.qclaw/skills');
+  expect(text).toContain('客户端根目录已存在');
+  expect(text).toContain('不创建未安装客户端的根目录');
+});

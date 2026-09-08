@@ -62,7 +62,7 @@ test('maps fund command options to the published query contract', async () => {
   const server = createServer((request, response) => {
     const url = new URL(request.url ?? '/', 'http://fixture');
     expect(url.pathname).toBe('/api/fund/performance/nav');
-    expect(url.searchParams.get('fund_type')).toBe('otc');
+    expect(url.searchParams.has('fund_type')).toBe(false);
     expect(url.searchParams.get('thscode')).toBe('025480.OF');
     expect(url.searchParams.get('range')).toBe('year');
     expect(url.searchParams.get('nav_type')).toBe('unit,adj');
@@ -86,8 +86,6 @@ test('maps fund command options to the published query contract', async () => {
         'dist/cli/main.js',
         'fund',
         'nav',
-        '--fund-type',
-        'otc',
         '--thscode',
         '025480.OF',
         '--range',

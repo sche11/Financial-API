@@ -10,14 +10,13 @@
 
 ```bash
 hithink-finance schema fund.bond-history --format json
-hithink-finance fund bond-history --fund-type <type> --thscode <code> --report-type <type> --end-date <date> --format json
+hithink-finance fund bond-history --thscode <code> --report-type <type> --end-date <date> --format json
 ```
 
 ## 参数选择策略
 
 | 参数                   | 必填 | 说明                                                                        |
 | ---------------------- | ---- | --------------------------------------------------------------------------- |
-| `--fund-type <type>`   | 是   | fund type；可选: otc, exchange, reits；上游参数: fund_type                  |
 | `--thscode <code>`     | 是   | single fund thscode                                                         |
 | `--report-type <type>` | 是   | report type returned by the report-dates capability；上游参数: report_type  |
 | `--end-date <date>`    | 是   | report end date returned by the report-dates capability；上游参数: end_date |

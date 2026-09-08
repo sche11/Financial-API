@@ -89,6 +89,6 @@ hithink-finance fund <command> --help
 
 ## 边界声明
 
-- 档案、持仓、净值、收益和持有人查询必须同时提供单个 `fund_type` 与 `thscode`。
+- 按基金查询的能力使用单个 `thscode` 唯一定位基金。
 - `fund snapshot` 只支持 ETF/LOF；`fund history` 只支持 ETF、固定 `1d` 且窗口最多 5 年。
 - 基金数据不是投资建议，不要据此扩写买卖或收益承诺。

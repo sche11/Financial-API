@@ -35,7 +35,7 @@
 ### 基金名称到数据
 
 1. 用 `get_meta_tickers_search` 查询名称，可传 `asset_type=fund-otc,fund-etf,fund-lof,fund-reits`。
-2. 根据唯一结果把 `fund-*` 叶子类型映射到 `fund_type=otc/exchange/reits`。
+2. 使用唯一结果中的完整 `thscode` 调用基金业务工具。
 3. 资料/披露/净值/收益/持有人走基金业务工具；ETF/LOF 快照走 `get_fund_market_snapshot`，ETF 日线走 `get_fund_market_historical`。
 
 ### 概念板块到成分股行情

@@ -10,18 +10,17 @@
 
 ```bash
 hithink-finance schema fund.indicators-history --format json
-hithink-finance fund indicators-history --fund-type <type> --thscode <code> --start-ms <milliseconds> --end-ms <milliseconds> --format json
+hithink-finance fund indicators-history --thscode <code> --start-ms <milliseconds> --end-ms <milliseconds> --format json
 ```
 
 ## 参数选择策略
 
-| 参数                        | 必填 | 说明                                                       |
-| --------------------------- | ---- | ---------------------------------------------------------- |
-| `--fund-type <type>`        | 是   | fund type；可选: otc, exchange, reits；上游参数: fund_type |
-| `--thscode <code>`          | 是   | single fund thscode                                        |
-| `--start-ms <milliseconds>` | 是   | range start in milliseconds；上游参数: start               |
-| `--end-ms <milliseconds>`   | 是   | range end in milliseconds；上游参数: end                   |
-| `--output <path>`           | 否   | write the full JSON response envelope to a file            |
+| 参数                        | 必填 | 说明                                            |
+| --------------------------- | ---- | ----------------------------------------------- |
+| `--thscode <code>`          | 是   | single fund thscode                             |
+| `--start-ms <milliseconds>` | 是   | range start in milliseconds；上游参数: start    |
+| `--end-ms <milliseconds>`   | 是   | range end in milliseconds；上游参数: end        |
+| `--output <path>`           | 否   | write the full JSON response envelope to a file |
 
 ## 窗口与分页
 

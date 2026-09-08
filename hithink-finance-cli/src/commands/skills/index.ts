@@ -73,6 +73,8 @@ export function registerSkillsCommands(
             synchronized: true,
             mode: options.repair === true ? 'repair' : 'sync',
             targetsVerified: false,
+            dedicatedTargets: result.dedicatedTargets,
+            backupCount: result.backupCount,
           },
           { requestId: context.requestId },
         ),
@@ -94,7 +96,11 @@ export function registerSkillsCommands(
         exitCode: 6,
       });
     await renderResult(
-      successEnvelope('skills.remove', { removed: true }, { requestId: context.requestId }),
+      successEnvelope(
+        'skills.remove',
+        { removed: true, dedicatedTargets: result.dedicatedTargets },
+        { requestId: context.requestId },
+      ),
       context,
     );
   });

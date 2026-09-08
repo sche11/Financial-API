@@ -1,6 +1,9 @@
 # Changelog
 
-## Unreleased
+## 0.1.8 - 2026-09-08
+
+- 基金查询命令统一使用 `thscode` 唯一定位基金，移除 `--fund-type` 参数。
+- 配套 Agent Skills 在已安装 WorkBuddy 或 QClaw 时同步到各自的用户级专属发现目录，并沿用更新修复与卸载生命周期。
 
 ## 0.1.7 - 2026-08-27
 

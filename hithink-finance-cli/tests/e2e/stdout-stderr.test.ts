@@ -17,7 +17,7 @@ test('writes invalid-command JSON only to stderr and exits with code 2', async (
       retryable: false,
     },
     meta: {
-      cli_version: '0.1.7',
+      cli_version: '0.1.8',
       schema_version: '1',
     },
   });

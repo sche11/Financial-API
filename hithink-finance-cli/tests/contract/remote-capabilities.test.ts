@@ -158,12 +158,17 @@ test('keeps all 28 fund capabilities under the fund command group', () => {
   ]);
 });
 
-test('validates fund enum and five-year historical boundaries', () => {
+test('uses thscode as the sole fund identifier and validates historical boundaries', () => {
+  expect(
+    remoteCapabilities
+      .filter((candidate) => candidate.id.startsWith('fund.'))
+      .flatMap((candidate) => candidate.options)
+      .some((option) => option.flags.startsWith('--fund-type')),
+  ).toBe(false);
+
   const profile = remoteCapabilities.find((candidate) => candidate.id === 'fund.profile')!;
+  expect(profile.inputSchema.safeParse({ thscode: '025480.OF' }).success).toBe(true);
   expect(profile.inputSchema.safeParse({ fundType: 'otc', thscode: '025480.OF' }).success).toBe(
-    true,
-  );
-  expect(profile.inputSchema.safeParse({ fundType: 'invalid', thscode: '025480.OF' }).success).toBe(
     false,
   );
 
@@ -186,17 +191,13 @@ test('validates fund enum and five-year historical boundaries', () => {
   const holders = remoteCapabilities.find((candidate) => candidate.id === 'fund.holders')!;
   expect(
     holders.inputSchema.safeParse({
-      fundType: 'otc',
       thscode: '161725.SZ',
       mergeScope: 'separate',
     }).success,
   ).toBe(true);
-  expect(holders.inputSchema.parse({ fundType: 'otc', thscode: '161725.SZ' }).mergeScope).toBe(
-    'all',
-  );
+  expect(holders.inputSchema.parse({ thscode: '161725.SZ' }).mergeScope).toBe('all');
   expect(
     holders.inputSchema.safeParse({
-      fundType: 'otc',
       thscode: '161725.SZ',
       mergeScope: 'combined',
     }).success,
@@ -317,7 +318,6 @@ test('maps auction and new fund parameter boundaries', () => {
   expect(indicators.description).toContain('no top-level thscode/interval');
   expect(
     indicators.inputSchema.safeParse({
-      fundType: 'otc',
       thscode: '025480.OF',
       startMs: 1,
       endMs: 2,
@@ -325,7 +325,6 @@ test('maps auction and new fund parameter boundaries', () => {
   ).toBe(true);
   expect(
     indicators.inputSchema.safeParse({
-      fundType: 'otc',
       thscode: '025480.OF',
       startMs: 2,
       endMs: 1,

@@ -2,17 +2,9 @@
 
 > 基金基本资料、披露数据、净值、收益、持有人结构以及场内基金行情。先通过元信息端点把名称或代码消歧为带后缀的唯一 `thscode`。
 
-## 公共参数与类型
+## 公共参数
 
-需要 `fund_type` 的端点使用以下枚举：
-
-| 值 | 含义 |
-| --- | --- |
-| `otc` | 场外公募基金，对应 `asset_type=fund-otc` |
-| `exchange` | 场内 ETF/LOF，对应 `fund-etf` 或 `fund-lof` |
-| `reits` | 公募 REITs，对应 `fund-reits` |
-
-`fund_type` 与 `thscode` 共同定位基金，不能传逗号分隔的多个 `fund_type`。场内行情端点不接收 `fund_type`，由服务端按 `thscode` 识别 ETF/LOF。
+按基金查询的端点使用带市场后缀的单个 `thscode` 唯一定位基金；不接受逗号分隔的多个代码。
 
 ## 1. 基金基本资料
 
@@ -20,10 +12,10 @@
 GET /api/fund/profile/detail
 ```
 
-参数：`fund_type`（必填）和单个 `thscode`（必填）。
+参数：单个 `thscode`（必填）。
 
 ```bash
-curl 'https://fuyao.aicubes.cn/api/fund/profile/detail?fund_type=otc&thscode=025480.OF' \
+curl 'https://fuyao.aicubes.cn/api/fund/profile/detail?thscode=025480.OF' \
   -H 'X-api-key: <your-api-key>'
 ```
 
@@ -46,7 +38,7 @@ curl 'https://fuyao.aicubes.cn/api/fund/profile/detail?fund_type=otc&thscode=025
 
 ### 避错要点
 
-- 不要仅凭 `.OF`/`.SH` 后缀猜 `fund_type`；先查元信息的 `asset_type`。
+- 名称或不完整代码应先通过元信息搜索消歧为唯一 `thscode`。
 - 可选资料字段可能为 `null`，不得补写虚构管理人或成立日。
 
 ## 2. 基金定期披露重仓股
@@ -55,10 +47,10 @@ curl 'https://fuyao.aicubes.cn/api/fund/profile/detail?fund_type=otc&thscode=025
 GET /api/fund/portfolio/holdings
 ```
 
-参数：`fund_type`（必填）和单个 `thscode`（必填）。
+参数：单个 `thscode`（必填）。
 
 ```bash
-curl 'https://fuyao.aicubes.cn/api/fund/portfolio/holdings?fund_type=exchange&thscode=510300.SH' \
+curl 'https://fuyao.aicubes.cn/api/fund/portfolio/holdings?thscode=510300.SH' \
   -H 'X-api-key: <your-api-key>'
 ```
 
@@ -79,13 +71,12 @@ GET /api/fund/performance/nav
 
 | 参数 | 类型 | 必填 | 说明 | 默认值 |
 | --- | --- | --- | --- | --- |
-| `fund_type` | string | 是 | `otc` / `exchange` / `reits`。 | — |
 | `thscode` | string | 是 | 单个基金代码。 | — |
 | `range` | string | 否 | `week` / `month` / `tmonth` / `hyear` / `year` / `twoyear` / `tyear` / `fyear`。省略时只返回最新点。 | — |
 | `nav_type` | string | 否 | `unit` / `adj` / `unit,adj`。 | `unit,adj` |
 
 ```bash
-curl 'https://fuyao.aicubes.cn/api/fund/performance/nav?fund_type=otc&thscode=025480.OF&range=year&nav_type=unit%2Cadj' \
+curl 'https://fuyao.aicubes.cn/api/fund/performance/nav?thscode=025480.OF&range=year&nav_type=unit%2Cadj' \
   -H 'X-api-key: <your-api-key>'
 ```
 
@@ -102,10 +93,10 @@ curl 'https://fuyao.aicubes.cn/api/fund/performance/nav?fund_type=otc&thscode=02
 GET /api/fund/performance/returns
 ```
 
-参数：`fund_type`（必填）和单个 `thscode`（必填）。
+参数：单个 `thscode`（必填）。
 
 ```bash
-curl 'https://fuyao.aicubes.cn/api/fund/performance/returns?fund_type=otc&thscode=025480.OF' \
+curl 'https://fuyao.aicubes.cn/api/fund/performance/returns?thscode=025480.OF' \
   -H 'X-api-key: <your-api-key>'
 ```
 
@@ -137,12 +128,11 @@ GET /api/fund/holders/detail
 
 | 参数 | 类型 | 必填 | 说明 |
 | --- | --- | --- | --- |
-| `fund_type` | string | 是 | 基金类型：`otc`（场外基金）、`exchange`（ETF/LOF）或 `reits`（公募 REITs）。 |
 | `thscode` | string | 是 | 完整基金 `thscode`，必须保留市场后缀；例如 `161725.SZ`。 |
 | `merge_scope` | string | 否 | 持有人披露口径：`all`（默认，分别返回合并/独立份额的最新记录）、`merged`（A 类、C 类等份额合并披露）或 `separate`（当前份额独立披露）。 |
 
 ```bash
-curl 'https://fuyao.aicubes.cn/api/fund/holders/detail?fund_type=otc&thscode=025480.OF&merge_scope=all' \
+curl 'https://fuyao.aicubes.cn/api/fund/holders/detail?thscode=025480.OF&merge_scope=all' \
   -H 'X-api-key: <your-api-key>'
 ```
 
@@ -237,10 +227,10 @@ curl 'https://fuyao.aicubes.cn/api/fund/companies/detail?company_id=<company-id>
 GET /api/fund/portfolio/industry-allocation
 ```
 
-参数：`fund_type` 和单个 `thscode`（均必填）。
+参数：单个 `thscode`（必填）。
 
 ```bash
-curl 'https://fuyao.aicubes.cn/api/fund/portfolio/industry-allocation?fund_type=otc&thscode=025480.OF' \
+curl 'https://fuyao.aicubes.cn/api/fund/portfolio/industry-allocation?thscode=025480.OF' \
   -H 'X-api-key: <your-api-key>'
 ```
 
@@ -252,22 +242,29 @@ curl 'https://fuyao.aicubes.cn/api/fund/portfolio/industry-allocation?fund_type=
 
 ## 10. 历史业绩指标
 
+查询基金净值波动、趋势强弱与估值百分位序列。
+
 ```text
 GET /api/fund/performance/indicators-historical
 ```
 
-参数：`fund_type`、`thscode`、毫秒时间戳 `start`、`end` 均必填。区间必须有序且最多 5 年。
+参数：`thscode`、毫秒时间戳 `start`、`end` 均必填。区间必须有序且最多 5 年。
 
 ```bash
-curl 'https://fuyao.aicubes.cn/api/fund/performance/indicators-historical?fund_type=otc&thscode=025480.OF&start=1704038400000&end=1735660799000' \
+curl 'https://fuyao.aicubes.cn/api/fund/performance/indicators-historical?thscode=025480.OF&start=1704038400000&end=1735660799000' \
   -H 'X-api-key: <your-api-key>'
 ```
 
 `data` 仅包含 `timestamp` 和 `item[]`；固定上游周期 `DAY_1` 不作为顶层响应字段，也不返回顶层 `thscode`、`interval`。`data.timestamp` 保留明确的上游数据时间；`item[]` 字段为 `date_ms`、`rsi_pct`、`donchian_channel`、`track_index_pe_ttm_five_year_percentile`。
 
+- `rsi_pct`：净值波动（RSI）
+- `donchian_channel`：趋势强弱（唐奇安通道）
+- `track_index_pe_ttm_five_year_percentile`：估值百分位（跟踪指数 PE TTM 五年分位）
+
 ### 避错要点
 
 - `start/end` 缺一不可；超过 5 年应拆成不重叠窗口。
+- 调用时使用上述原有 JSON 字段名，不要把用户侧含义作为参数或字段名传入。
 
 ## 11. 最大回撤
 
@@ -275,10 +272,10 @@ curl 'https://fuyao.aicubes.cn/api/fund/performance/indicators-historical?fund_t
 GET /api/fund/performance/drawdowns
 ```
 
-参数：`fund_type` 和单个 `thscode`（均必填）。
+参数：单个 `thscode`（必填）。
 
 ```bash
-curl 'https://fuyao.aicubes.cn/api/fund/performance/drawdowns?fund_type=otc&thscode=025480.OF' \
+curl 'https://fuyao.aicubes.cn/api/fund/performance/drawdowns?thscode=025480.OF' \
   -H 'X-api-key: <your-api-key>'
 ```
 
@@ -294,10 +291,10 @@ curl 'https://fuyao.aicubes.cn/api/fund/performance/drawdowns?fund_type=otc&thsc
 GET /api/fund/holders/top
 ```
 
-参数：`fund_type`、`thscode` 必填；`limit` 可选，最大 10。
+参数：`thscode` 必填；`limit` 可选，最大 10。
 
 ```bash
-curl 'https://fuyao.aicubes.cn/api/fund/holders/top?fund_type=exchange&thscode=588000.SH&limit=10' \
+curl 'https://fuyao.aicubes.cn/api/fund/holders/top?thscode=588000.SH&limit=10' \
   -H 'X-api-key: <your-api-key>'
 ```
 
@@ -313,10 +310,10 @@ curl 'https://fuyao.aicubes.cn/api/fund/holders/top?fund_type=exchange&thscode=5
 GET /api/fund/corporate-actions/dividends
 ```
 
-参数：`fund_type` 和单个 `thscode`（均必填）。
+参数：单个 `thscode`（必填）。
 
 ```bash
-curl 'https://fuyao.aicubes.cn/api/fund/corporate-actions/dividends?fund_type=otc&thscode=025480.OF' \
+curl 'https://fuyao.aicubes.cn/api/fund/corporate-actions/dividends?thscode=025480.OF' \
   -H 'X-api-key: <your-api-key>'
 ```
 
@@ -332,10 +329,10 @@ curl 'https://fuyao.aicubes.cn/api/fund/corporate-actions/dividends?fund_type=ot
 GET /api/fund/diagnostics/detail
 ```
 
-参数：`fund_type` 和单个 `thscode`（均必填）。
+参数：单个 `thscode`（必填）。
 
 ```bash
-curl 'https://fuyao.aicubes.cn/api/fund/diagnostics/detail?fund_type=otc&thscode=025480.OF' \
+curl 'https://fuyao.aicubes.cn/api/fund/diagnostics/detail?thscode=025480.OF' \
   -H 'X-api-key: <your-api-key>'
 ```
 
@@ -351,10 +348,10 @@ curl 'https://fuyao.aicubes.cn/api/fund/diagnostics/detail?fund_type=otc&thscode
 GET /api/fund/financials/indicators
 ```
 
-参数：`fund_type` 和单个 `thscode`（均必填）。
+参数：单个 `thscode`（必填）。
 
 ```bash
-curl 'https://fuyao.aicubes.cn/api/fund/financials/indicators?fund_type=otc&thscode=025480.OF' \
+curl 'https://fuyao.aicubes.cn/api/fund/financials/indicators?thscode=025480.OF' \
   -H 'X-api-key: <your-api-key>'
 ```
 
@@ -370,10 +367,10 @@ curl 'https://fuyao.aicubes.cn/api/fund/financials/indicators?fund_type=otc&thsc
 GET /api/fund/financials/income-statements
 ```
 
-参数：`fund_type` 和单个 `thscode`（均必填）。
+参数：单个 `thscode`（必填）。
 
 ```bash
-curl 'https://fuyao.aicubes.cn/api/fund/financials/income-statements?fund_type=otc&thscode=025480.OF' \
+curl 'https://fuyao.aicubes.cn/api/fund/financials/income-statements?thscode=025480.OF' \
   -H 'X-api-key: <your-api-key>'
 ```
 
@@ -389,10 +386,10 @@ curl 'https://fuyao.aicubes.cn/api/fund/financials/income-statements?fund_type=o
 GET /api/fund/financials/balance-sheets
 ```
 
-参数：`fund_type` 和单个 `thscode`（均必填）。
+参数：单个 `thscode`（必填）。
 
 ```bash
-curl 'https://fuyao.aicubes.cn/api/fund/financials/balance-sheets?fund_type=otc&thscode=025480.OF' \
+curl 'https://fuyao.aicubes.cn/api/fund/financials/balance-sheets?thscode=025480.OF' \
   -H 'X-api-key: <your-api-key>'
 ```
 
@@ -484,10 +481,10 @@ curl 'https://fuyao.aicubes.cn/api/fund/managers/detail?manager_id=<manager-id>'
 GET /api/fund/news/article-list
 ```
 
-参数：`fund_type`、`thscode` 必填；`limit` 可选，默认 20、范围 1–100；`offset` 是可选不透明翻页游标。
+参数：`thscode` 必填；`limit` 可选，默认 20、范围 1–100；`offset` 是可选不透明翻页游标。
 
 ```bash
-curl 'https://fuyao.aicubes.cn/api/fund/news/article-list?fund_type=otc&thscode=025480.OF&limit=20' \
+curl 'https://fuyao.aicubes.cn/api/fund/news/article-list?thscode=025480.OF&limit=20' \
   -H 'X-api-key: <your-api-key>'
 ```
 
@@ -525,10 +522,10 @@ curl 'https://fuyao.aicubes.cn/api/fund/offerings/list?subscribe=active' \
 GET /api/fund/portfolio/stock-history
 ```
 
-参数：`fund_type`、`thscode`、`report_type`、`end_date` 均必填。`report_type` 与 `end_date` 应先从股票持仓报告日期端点发现。
+参数：`thscode`、`report_type`、`end_date` 均必填。`report_type` 与 `end_date` 应先从股票持仓报告日期端点发现。
 
 ```bash
-curl 'https://fuyao.aicubes.cn/api/fund/portfolio/stock-history?fund_type=otc&thscode=025480.OF&report_type=<type>&end_date=<date>' \
+curl 'https://fuyao.aicubes.cn/api/fund/portfolio/stock-history?thscode=025480.OF&report_type=<type>&end_date=<date>' \
   -H 'X-api-key: <your-api-key>'
 ```
 
@@ -544,10 +541,10 @@ curl 'https://fuyao.aicubes.cn/api/fund/portfolio/stock-history?fund_type=otc&th
 GET /api/fund/portfolio/stock-report-dates
 ```
 
-参数：`fund_type`、`thscode` 必填；`report_type` 可选。
+参数：`thscode` 必填；`report_type` 可选。
 
 ```bash
-curl 'https://fuyao.aicubes.cn/api/fund/portfolio/stock-report-dates?fund_type=otc&thscode=025480.OF' \
+curl 'https://fuyao.aicubes.cn/api/fund/portfolio/stock-report-dates?thscode=025480.OF' \
   -H 'X-api-key: <your-api-key>'
 ```
 
@@ -563,10 +560,10 @@ curl 'https://fuyao.aicubes.cn/api/fund/portfolio/stock-report-dates?fund_type=o
 GET /api/fund/portfolio/bond-history
 ```
 
-参数与股票历史持仓一致：`fund_type`、`thscode`、`report_type`、`end_date` 均必填。
+参数与股票历史持仓一致：`thscode`、`report_type`、`end_date` 均必填。
 
 ```bash
-curl 'https://fuyao.aicubes.cn/api/fund/portfolio/bond-history?fund_type=otc&thscode=025480.OF&report_type=<type>&end_date=<date>' \
+curl 'https://fuyao.aicubes.cn/api/fund/portfolio/bond-history?thscode=025480.OF&report_type=<type>&end_date=<date>' \
   -H 'X-api-key: <your-api-key>'
 ```
 
@@ -582,10 +579,10 @@ curl 'https://fuyao.aicubes.cn/api/fund/portfolio/bond-history?fund_type=otc&ths
 GET /api/fund/portfolio/bond-report-dates
 ```
 
-参数：`fund_type`、`thscode` 必填；`report_type` 可选。
+参数：`thscode` 必填；`report_type` 可选。
 
 ```bash
-curl 'https://fuyao.aicubes.cn/api/fund/portfolio/bond-report-dates?fund_type=otc&thscode=025480.OF' \
+curl 'https://fuyao.aicubes.cn/api/fund/portfolio/bond-report-dates?thscode=025480.OF' \
   -H 'X-api-key: <your-api-key>'
 ```
 
@@ -601,10 +598,10 @@ curl 'https://fuyao.aicubes.cn/api/fund/portfolio/bond-report-dates?fund_type=ot
 GET /api/fund/portfolio/asset-allocation
 ```
 
-参数：`fund_type` 和单个 `thscode`（均必填）。
+参数：单个 `thscode`（必填）。
 
 ```bash
-curl 'https://fuyao.aicubes.cn/api/fund/portfolio/asset-allocation?fund_type=otc&thscode=025480.OF' \
+curl 'https://fuyao.aicubes.cn/api/fund/portfolio/asset-allocation?thscode=025480.OF' \
   -H 'X-api-key: <your-api-key>'
 ```
 
@@ -618,6 +615,6 @@ curl 'https://fuyao.aicubes.cn/api/fund/portfolio/asset-allocation?fund_type=otc
 
 | `code` | 含义 | 调用方处理 |
 | --- | --- | --- |
-| `3001` | 未找到对应基金 | 先用 meta 搜索核对 `fund_type`、`asset_type` 与 `thscode`。 |
+| `3001` | 未找到对应基金 | 先用 meta 搜索核对 `asset_type` 与 `thscode`。 |
 | `3002` | 数据尚未准备 | 保留 `request_id` 和数据口径，稍后再查；不得补零或用模拟数据。 |
 | `3004` | 目标基金类型不支持该能力 | 改用适用于该 `asset_type` 的端点，不重试原请求。 |

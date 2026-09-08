@@ -95,6 +95,8 @@ def test_mcp_auction_and_limit_pool_tools_match_rest_contracts() -> None:
 
 def test_mcp_fund_snapshot_lists_all_extended_tools_and_boundaries() -> None:
     fund = read("docs/mcp/hithink-finance-fund.md")
+    assert "fund_type" not in fund
+    assert "使用带市场后缀的单个 `thscode` 唯一定位基金" in fund
 
     for required in (
         "get_fund_companies_detail",
@@ -122,5 +124,15 @@ def test_mcp_fund_snapshot_lists_all_extended_tools_and_boundaries() -> None:
         for line in fund.splitlines()
         if "get_fund_performance_indicators_historical" in line
     )
+    assert "查询基金净值波动、趋势强弱与估值百分位序列" in indicators_row
     assert "`start`/`end`" in indicators_row
     assert "start_date/end_date" not in indicators_row
+    for field, meaning in (
+        ("rsi_pct", "净值波动（RSI）"),
+        ("donchian_channel", "趋势强弱（唐奇安通道）"),
+        (
+            "track_index_pe_ttm_five_year_percentile",
+            "估值百分位（跟踪指数 PE TTM 五年分位）",
+        ),
+    ):
+        assert f"`{field}`：{meaning}" in fund

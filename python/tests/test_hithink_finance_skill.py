@@ -59,6 +59,21 @@ def test_hithink_finance_skill_defines_safe_agent_execution_contract() -> None:
     assert "模拟数据" in skill
 
 
+def test_hithink_finance_skill_probes_all_managed_mcp_services() -> None:
+    skill = _skill_text()
+    probe_line = next(
+        line for line in skill.splitlines() if "当前会话是否已连接" in line
+    )
+
+    for service in (
+        "hithink-finance-a-share",
+        "hithink-finance-a-share-index",
+        "hithink-finance-meta",
+        "hithink-finance-fund",
+    ):
+        assert service in probe_line
+
+
 def test_cli_entry_covers_setup_lifecycle_and_routes_to_builtin_skills() -> None:
     cli = (SKILL_ROOT / "references" / "cli.md").read_text(encoding="utf-8")
     setup = (SKILL_ROOT / "references" / "cli" / "setup.md").read_text(

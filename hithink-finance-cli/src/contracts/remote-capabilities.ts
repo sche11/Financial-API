@@ -224,19 +224,9 @@ function fundDetail(
     description,
     endpoint,
     method: 'GET',
-    inputSchema: z
-      .object({ fundType: z.enum(['otc', 'exchange', 'reits']), thscode: fundCode })
-      .strict(),
+    inputSchema: z.object({ thscode: fundCode }).strict(),
     outputSchema: itemOutput,
     options: [
-      {
-        flags: '--fund-type <type>',
-        description: 'fund type',
-        type: 'string',
-        required: true,
-        choices: ['otc', 'exchange', 'reits'],
-        queryName: 'fund_type',
-      },
       {
         flags: '--thscode <code>',
         description: 'single fund thscode',
@@ -304,7 +294,6 @@ function fundPortfolioHistory(
     method: 'GET',
     inputSchema: z
       .object({
-        fundType: z.enum(['otc', 'exchange', 'reits']),
         thscode: fundCode,
         reportType: z.string().min(1),
         endDate: z.string().min(1),
@@ -312,14 +301,6 @@ function fundPortfolioHistory(
       .strict(),
     outputSchema: itemOutput,
     options: [
-      {
-        flags: '--fund-type <type>',
-        description: 'fund type',
-        type: 'string',
-        required: true,
-        choices: ['otc', 'exchange', 'reits'],
-        queryName: 'fund_type',
-      },
       {
         flags: '--thscode <code>',
         description: 'single fund thscode',
@@ -359,21 +340,12 @@ function fundReportDates(
     method: 'GET',
     inputSchema: z
       .object({
-        fundType: z.enum(['otc', 'exchange', 'reits']),
         thscode: fundCode,
         reportType: z.string().min(1).optional(),
       })
       .strict(),
     outputSchema: itemOutput,
     options: [
-      {
-        flags: '--fund-type <type>',
-        description: 'fund type',
-        type: 'string',
-        required: true,
-        choices: ['otc', 'exchange', 'reits'],
-        queryName: 'fund_type',
-      },
       {
         flags: '--thscode <code>',
         description: 'single fund thscode',
@@ -862,7 +834,6 @@ export const remoteCapabilities: readonly RemoteCapabilityDescriptor[] = [
     method: 'GET',
     inputSchema: z
       .object({
-        fundType: z.enum(['otc', 'exchange', 'reits']),
         thscode: fundCode,
         range: z
           .enum(['week', 'month', 'tmonth', 'hyear', 'year', 'twoyear', 'tyear', 'fyear'])
@@ -872,14 +843,6 @@ export const remoteCapabilities: readonly RemoteCapabilityDescriptor[] = [
       .strict(),
     outputSchema: itemOutput,
     options: [
-      {
-        flags: '--fund-type <type>',
-        description: 'fund type',
-        type: 'string',
-        required: true,
-        choices: ['otc', 'exchange', 'reits'],
-        queryName: 'fund_type',
-      },
       {
         flags: '--thscode <code>',
         description: 'single fund thscode',
@@ -913,21 +876,12 @@ export const remoteCapabilities: readonly RemoteCapabilityDescriptor[] = [
     method: 'GET',
     inputSchema: z
       .object({
-        fundType: z.enum(['otc', 'exchange', 'reits']),
         thscode: fundCode,
         mergeScope: z.enum(['all', 'merged', 'separate']).default('all'),
       })
       .strict(),
     outputSchema: itemOutput,
     options: [
-      {
-        flags: '--fund-type <type>',
-        description: 'fund type',
-        type: 'string',
-        required: true,
-        choices: ['otc', 'exchange', 'reits'],
-        queryName: 'fund_type',
-      },
       {
         flags: '--thscode <code>',
         description: 'single fund thscode',
@@ -1039,7 +993,6 @@ export const remoteCapabilities: readonly RemoteCapabilityDescriptor[] = [
     method: 'GET',
     inputSchema: z
       .object({
-        fundType: z.enum(['otc', 'exchange', 'reits']),
         thscode: fundCode,
         startMs: z.number().int().nonnegative(),
         endMs: z.number().int().nonnegative(),
@@ -1061,14 +1014,6 @@ export const remoteCapabilities: readonly RemoteCapabilityDescriptor[] = [
       }),
     outputSchema: itemOutput,
     options: [
-      {
-        flags: '--fund-type <type>',
-        description: 'fund type',
-        type: 'string',
-        required: true,
-        choices: ['otc', 'exchange', 'reits'],
-        queryName: 'fund_type',
-      },
       {
         flags: '--thscode <code>',
         description: 'single fund thscode',
@@ -1102,21 +1047,12 @@ export const remoteCapabilities: readonly RemoteCapabilityDescriptor[] = [
     method: 'GET',
     inputSchema: z
       .object({
-        fundType: z.enum(['otc', 'exchange', 'reits']),
         thscode: fundCode,
         limit: z.number().int().min(1).max(10).optional(),
       })
       .strict(),
     outputSchema: itemOutput,
     options: [
-      {
-        flags: '--fund-type <type>',
-        description: 'fund type',
-        type: 'string',
-        required: true,
-        choices: ['otc', 'exchange', 'reits'],
-        queryName: 'fund_type',
-      },
       {
         flags: '--thscode <code>',
         description: 'single fund thscode',
@@ -1165,7 +1101,6 @@ export const remoteCapabilities: readonly RemoteCapabilityDescriptor[] = [
     method: 'GET',
     inputSchema: z
       .object({
-        fundType: z.enum(['otc', 'exchange', 'reits']),
         thscode: fundCode,
         limit: z.number().int().min(1).max(100).default(20),
         offset: z.string().min(1).optional(),
@@ -1173,14 +1108,6 @@ export const remoteCapabilities: readonly RemoteCapabilityDescriptor[] = [
       .strict(),
     outputSchema: itemOutput,
     options: [
-      {
-        flags: '--fund-type <type>',
-        description: 'fund type',
-        type: 'string',
-        required: true,
-        choices: ['otc', 'exchange', 'reits'],
-        queryName: 'fund_type',
-      },
       {
         flags: '--thscode <code>',
         description: 'single fund thscode',
