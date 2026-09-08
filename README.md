@@ -638,6 +638,12 @@ npm run verify
 
 ---
 
+## Star History
+
+[![Star History Chart](https://api.star-history.com/svg?repos=HiThink-Tech/Financial-API&type=Date)](https://www.star-history.com/#HiThink-Tech/Financial-API&Date)
+
+---
+
 ## License
 
 本仓库采用 [MIT License](LICENSE)。
