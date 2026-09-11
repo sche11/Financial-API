@@ -12,10 +12,10 @@ hithink-finance skills remove --format json
 
 - `status` 只检查 CLI 包内 manifest 和规范目录；`targets_verified: false` 表示尚未验证各 Agent 的发现目录，不能据此宣称已安装。
 - `sync` 与 `sync --repair` 都会覆盖同步缺失或漂移的官方文件；后者在结构化结果中返回 `mode: repair`，便于更新流程和自动化审计。
-- WorkBuddy 和 QClaw 的客户端根目录已存在时，额外把 10 个官方 Skill 同步到 `~/.workbuddy/skills` 和 `~/.qclaw/skills`，并按 manifest 校验结果；不创建未安装客户端的根目录。
+- WorkBuddy 和 QClaw 的客户端根目录已存在时，额外把 12 个官方 Skill 同步到 `~/.workbuddy/skills` 和 `~/.qclaw/skills`，并按 manifest 校验结果；不创建未安装客户端的根目录。
 - 专属目录中的官方文件被用户修改时先创建备份，再写入当前包版本；同步失败返回部分失败，不把未完成更新报告为成功。
-- `remove` 只移除本 CLI manifest 拥有的 10 个 skill，不做全局清空。
-- 若某个 Agent 不在自动安装范围内，读取 `status --format json` 的 `canonical` 目录，并把其中 10 个 `hithink-finance-*` 目录复制到该 Agent 文档声明的 skills 发现目录。
+- `remove` 只移除本 CLI manifest 拥有的 12 个 skill，不做全局清空。
+- 若某个 Agent 不在自动安装范围内，读取 `status --format json` 的 `canonical` 目录，并把其中 12 个 `hithink-finance-*` 目录复制到该 Agent 文档声明的 skills 发现目录。
 
 ## 常见错误
 

@@ -113,6 +113,24 @@
       "source": "remote"
     },
     {
+      "id": "fund.backtest-indicators",
+      "command": ["fund", "backtest-indicators"],
+      "endpoint": "/api/fund/backtest/indicators",
+      "method": "GET",
+      "paging": "none",
+      "window": "none",
+      "source": "remote"
+    },
+    {
+      "id": "fund.backtest-result",
+      "command": ["fund", "backtest-result"],
+      "endpoint": "/api/fund/backtest/result",
+      "method": "GET",
+      "paging": "none",
+      "window": "none",
+      "source": "remote"
+    },
+    {
       "id": "fund.balance-sheets",
       "command": ["fund", "balance-sheets"],
       "endpoint": "/api/fund/financials/balance-sheets",
@@ -230,6 +248,24 @@
       "source": "remote"
     },
     {
+      "id": "fund.indicators-line",
+      "command": ["fund", "indicators-line"],
+      "endpoint": "/api/fund/indicators/line",
+      "method": "GET",
+      "paging": "none",
+      "window": "none",
+      "source": "remote"
+    },
+    {
+      "id": "fund.indicators-table",
+      "command": ["fund", "indicators-table"],
+      "endpoint": "/api/fund/indicators/table",
+      "method": "GET",
+      "paging": "none",
+      "window": "none",
+      "source": "remote"
+    },
+    {
       "id": "fund.industry-allocation",
       "command": ["fund", "industry-allocation"],
       "endpoint": "/api/fund/portfolio/industry-allocation",
@@ -311,6 +347,24 @@
       "source": "remote"
     },
     {
+      "id": "fund.quota-list",
+      "command": ["fund", "quota-list"],
+      "endpoint": "/api/fund/quota/list",
+      "method": "GET",
+      "paging": "none",
+      "window": "none",
+      "source": "remote"
+    },
+    {
+      "id": "fund.quota-summary",
+      "command": ["fund", "quota-summary"],
+      "endpoint": "/api/fund/quota/summary",
+      "method": "GET",
+      "paging": "none",
+      "window": "none",
+      "source": "remote"
+    },
+    {
       "id": "fund.returns",
       "command": ["fund", "returns"],
       "endpoint": "/api/fund/performance/returns",
@@ -350,6 +404,123 @@
       "id": "fund.top-holders",
       "command": ["fund", "top-holders"],
       "endpoint": "/api/fund/holders/top",
+      "method": "GET",
+      "paging": "none",
+      "window": "none",
+      "source": "remote"
+    },
+    {
+      "id": "futures.basis-history",
+      "command": ["futures", "basis-history"],
+      "endpoint": "/api/futures/basis/historical",
+      "method": "GET",
+      "paging": "none",
+      "window": "none",
+      "source": "remote"
+    },
+    {
+      "id": "futures.company-variety-positions",
+      "command": ["futures", "company-variety-positions"],
+      "endpoint": "/api/futures/positions/company-variety-daily",
+      "method": "GET",
+      "paging": "none",
+      "window": "none",
+      "source": "remote"
+    },
+    {
+      "id": "futures.contract-detail",
+      "command": ["futures", "contract-detail"],
+      "endpoint": "/api/futures/contracts/detail",
+      "method": "GET",
+      "paging": "none",
+      "window": "none",
+      "source": "remote"
+    },
+    {
+      "id": "futures.contract-position-history",
+      "command": ["futures", "contract-position-history"],
+      "endpoint": "/api/futures/positions/contract-historical",
+      "method": "GET",
+      "paging": "none",
+      "window": "one-year",
+      "source": "remote"
+    },
+    {
+      "id": "futures.contract-positions",
+      "command": ["futures", "contract-positions"],
+      "endpoint": "/api/futures/positions/contract-daily",
+      "method": "GET",
+      "paging": "none",
+      "window": "none",
+      "source": "remote"
+    },
+    {
+      "id": "futures.daily",
+      "command": ["futures", "daily"],
+      "endpoint": "/api/futures/prices/daily",
+      "method": "GET",
+      "paging": "none",
+      "window": "none",
+      "source": "remote"
+    },
+    {
+      "id": "futures.intraday",
+      "command": ["futures", "intraday"],
+      "endpoint": "/api/futures/prices/intraday",
+      "method": "GET",
+      "paging": "none",
+      "window": "today-only",
+      "source": "remote"
+    },
+    {
+      "id": "futures.latest-basis",
+      "command": ["futures", "latest-basis"],
+      "endpoint": "/api/futures/basis/main-continuous-latest",
+      "method": "GET",
+      "paging": "none",
+      "window": "none",
+      "source": "remote"
+    },
+    {
+      "id": "futures.position-companies",
+      "command": ["futures", "position-companies"],
+      "endpoint": "/api/futures/positions/company-list",
+      "method": "GET",
+      "paging": "none",
+      "window": "none",
+      "source": "remote"
+    },
+    {
+      "id": "futures.trading-schedule",
+      "command": ["futures", "trading-schedule"],
+      "endpoint": "/api/futures/calendar/trading-schedule",
+      "method": "GET",
+      "paging": "none",
+      "window": "none",
+      "source": "remote"
+    },
+    {
+      "id": "futures.varieties",
+      "command": ["futures", "varieties"],
+      "endpoint": "/api/futures/varieties/list",
+      "method": "GET",
+      "paging": "none",
+      "window": "none",
+      "source": "remote"
+    },
+    {
+      "id": "futures.variety-positions",
+      "command": ["futures", "variety-positions"],
+      "endpoint": "/api/futures/positions/variety-daily",
+      "method": "GET",
+      "paging": "none",
+      "window": "none",
+      "source": "remote"
+    },
+    {
+      "id": "futures.warehouse-receipts",
+      "command": ["futures", "warehouse-receipts"],
+      "endpoint": "/api/futures/warehouse-receipts/historical",
       "method": "GET",
       "paging": "none",
       "window": "none",
@@ -454,6 +625,42 @@
       "endpoint": "/api/a-share/prices/snapshot",
       "method": "GET",
       "paging": "offset",
+      "window": "none",
+      "source": "remote"
+    },
+    {
+      "id": "options.contract-detail",
+      "command": ["options", "contract-detail"],
+      "endpoint": "/api/options/contracts/detail",
+      "method": "GET",
+      "paging": "none",
+      "window": "none",
+      "source": "remote"
+    },
+    {
+      "id": "options.daily",
+      "command": ["options", "daily"],
+      "endpoint": "/api/options/prices/daily",
+      "method": "GET",
+      "paging": "none",
+      "window": "none",
+      "source": "remote"
+    },
+    {
+      "id": "options.intraday",
+      "command": ["options", "intraday"],
+      "endpoint": "/api/options/prices/intraday",
+      "method": "GET",
+      "paging": "none",
+      "window": "today-only",
+      "source": "remote"
+    },
+    {
+      "id": "options.varieties",
+      "command": ["options", "varieties"],
+      "endpoint": "/api/options/varieties/list",
+      "method": "GET",
+      "paging": "none",
       "window": "none",
       "source": "remote"
     },

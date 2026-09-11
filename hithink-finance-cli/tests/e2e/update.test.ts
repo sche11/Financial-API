@@ -54,7 +54,7 @@ test('update repair invokes npm with an exact package version using argument arr
   expect(result.stderr).toContain('cli stdout');
   expect(result.stderr).toContain('cli stderr');
   expect(await readFile(log, 'utf8')).toContain('install');
-  expect(await readFile(log, 'utf8')).toContain('@hithink-tech/hithink-finance-cli@0.1.8');
+  expect(await readFile(log, 'utf8')).toContain('@hithink-tech/hithink-finance-cli@0.1.10');
   expect(await readFile(cliLog, 'utf8')).toContain('skills sync --repair');
   expect(await readFile(cliLog, 'utf8')).toContain('doctor');
 });

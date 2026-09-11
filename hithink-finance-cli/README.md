@@ -73,21 +73,23 @@ Agent 不应只凭 README 猜参数。先读取 `capabilities`，再对目标 ca
 
 ## 命令导航
 
-| 命令组                          | 用途                                                 |
-| ------------------------------- | ---------------------------------------------------- |
-| `version`, `doctor`             | 版本、认证、配置、DuckDB、数据锁和内置 Skills 诊断   |
-| `auth`, `config`                | API Key 与非敏感配置                                 |
-| `symbol`                        | 标的检索与代码表                                     |
-| `market`                        | 个股行情、集合竞价、交易日历、本地面板和复权因子     |
-| `financials`                    | 财务报表与财务指标                                   |
-| `index`                         | 指数/板块目录、成分和行情                            |
-| `fund`                          | 基金档案、公司、经理、持仓、财务、资讯和场内行情     |
-| `valuation`                     | A 股当前市盈率、市净率、市销率和市现率估值快照       |
-| `special`                       | 涨停、跌停、炸板、连板、异动、热榜和龙虎榜           |
-| `data`                          | 本地数据库初始化、同步、状态、校验、迁移、修复和清理 |
-| `db`                            | DuckDB 描述、只读 SQL 和导出                         |
-| `capabilities`, `schema`        | 机器可读命令契约                                     |
-| `skills`, `update`, `uninstall` | Agent Skills 与 CLI 生命周期                         |
+| 命令组                          | 用途                                                                    |
+| ------------------------------- | ----------------------------------------------------------------------- |
+| `version`, `doctor`             | 版本、认证、配置、DuckDB、数据锁和内置 Skills 诊断                      |
+| `auth`, `config`                | API Key 与非敏感配置                                                    |
+| `symbol`                        | 标的检索与代码表                                                        |
+| `market`                        | 个股行情、集合竞价、交易日历、本地面板和复权因子                        |
+| `financials`                    | 财务报表与财务指标                                                      |
+| `index`                         | 指数/板块目录、成分和行情                                               |
+| `fund`                          | 基金档案、公司、经理、持仓、财务、资讯、回测、指标、QDII 额度和场内行情 |
+| `futures`                       | 期货品种、合约、持仓、仓单、基差、日程与行情                            |
+| `options`                       | 期权品种、合约与行情                                                    |
+| `valuation`                     | A 股当前市盈率、市净率、市销率和市现率估值快照                          |
+| `special`                       | 涨停、跌停、炸板、连板、异动、热榜和龙虎榜                              |
+| `data`                          | 本地数据库初始化、同步、状态、校验、迁移、修复和清理                    |
+| `db`                            | DuckDB 描述、只读 SQL 和导出                                            |
+| `capabilities`, `schema`        | 机器可读命令契约                                                        |
+| `skills`, `update`, `uninstall` | Agent Skills 与 CLI 生命周期                                            |
 
 常见调用：
 
@@ -99,6 +101,8 @@ hithink-finance financials income --thscode 600519.SH --limit 4 --format json
 hithink-finance index constituents --thscode 000300.SH --format json
 hithink-finance fund nav --thscode 025480.OF --range year --format json
 hithink-finance fund manager-detail --manager-id <id> --format json
+hithink-finance fund backtest-indicators --format json
+hithink-finance fund quota-list --tab '["nazhi100"]' --buy true --format json
 hithink-finance valuation snapshot --thscodes 600519.SH,000001.SZ --format json
 hithink-finance special limit-break-pool --size 50 --format json
 hithink-finance data status --format json
@@ -143,7 +147,7 @@ hithink-finance db describe --format json
 
 远端初始化和同步下载数据包时，交互终端会在 stderr 动态刷新进度；stderr 被重定向时会输出开始、完成及节流后的进度日志（至少相隔 5 秒且新增 8 MiB）。无论何种模式，`--format json` 的结果信封都只写入 stdout。
 
-下载校验在流式写盘过程中增量计算 SHA-256，不会为了哈希再次把完整 dump 读入内存。DuckDB 默认最多使用 4 个线程，内存上限按系统内存的 25% 计算并限制在 256 MiB 至 1 GiB；可用 `HITHINK_FINANCE_DUCKDB_THREADS` 和 `HITHINK_FINANCE_DUCKDB_MEMORY_LIMIT`（例如 `512MiB`）覆盖。只读查询会响应终止信号；数据导入提交后仍先完成复权、元数据和质量一致性收尾。
+下载校验在流式写盘过程中增量计算 SHA-256，不会为了哈希再次把完整 dump 读入内存。DuckDB 默认最多使用 4 个线程，内存上限按系统内存的 50% 计算并限制在 256 MiB 至 4 GiB，以满足带主键索引的增量导入与事务提交；可用 `HITHINK_FINANCE_DUCKDB_THREADS` 和 `HITHINK_FINANCE_DUCKDB_MEMORY_LIMIT`（例如 `2GiB`）覆盖。只读查询会响应终止信号；数据导入提交后仍先完成复权、元数据和质量一致性收尾。
 
 stdin 输入受大小保护：API Key 最多 16 KiB，批量证券代码最多 1 MiB。超限返回 `CLI_STDIN_TOO_LARGE`，不会继续缓存输入。
 

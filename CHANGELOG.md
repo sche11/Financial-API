@@ -2,6 +2,17 @@
 
 本文件记录“同花顺金融数据服务（hithink finance）”对外可见的重要变化。版本升级与路径兼容说明见 [Monorepo 版本升级指南](docs/monorepo-migration.md)。
 
+## 2026-09-10 — 期货期权与端内专业能力同步
+
+- 新增 13 项公开期货能力和 4 项公开期权能力，同步 REST、MCP、CLI、Python toolkit 与统一 Agent Skill。
+- 标的目录新增 `futures`、`options` 资产类型；统一 Skill 恢复 AI 客户端入口，并登记高频动向和 8 项期货期权端内专业能力。
+- CLI 版本更新为 `0.1.10`。
+
+## 2026-09-09 — 基金功能接口同步
+
+- 新增基金在线回测、回测指标目录、画线/表格指标与 QDII 额度 6 项能力。
+- REST、MCP、CLI、Python toolkit 和统一 Agent Skill 同步支持相同参数、字段与空值语义；CLI 版本更新为 `0.1.9`。
+
 ## 2026-09-08 — 基金参数与 Agent Skill 更新体验优化
 
 - 基金查询统一使用 `thscode` 唯一定位基金，移除 `fund_type` 参数，并补充基金字段说明。

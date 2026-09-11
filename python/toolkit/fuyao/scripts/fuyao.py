@@ -31,6 +31,12 @@ from fuyao_client import (  # noqa: E402
     financials_indicators,
     financials_income_statements,
     fund_holders_detail,
+    fund_backtest_indicators,
+    fund_backtest_result,
+    fund_indicators_line,
+    fund_indicators_table,
+    fund_quota_summary,
+    fund_quota_list,
     fund_holders_top,
     fund_companies_detail,
     fund_corporate_actions_dividends,
@@ -58,12 +64,29 @@ from fuyao_client import (  # noqa: E402
     fund_portfolio_stock_history,
     fund_portfolio_stock_report_dates,
     fund_profile_detail,
+    futures_basis_history,
+    futures_company_variety_positions,
+    futures_contract_detail,
+    futures_contract_position_history,
+    futures_contract_positions,
+    futures_daily,
+    futures_intraday,
+    futures_latest_basis,
+    futures_position_companies,
+    futures_trading_schedule,
+    futures_varieties,
+    futures_variety_positions,
+    futures_warehouse_receipts,
     index_catalog_ths_index_list,
     index_constituents_ths_stock_list,
     index_prices_historical,
     index_prices_snapshot,
     prices_historical,
     prices_snapshot,
+    options_contract_detail,
+    options_daily,
+    options_intraday,
+    options_varieties,
     special_data_limit_up_ladder,
     special_data_limit_up_pool,
     special_data_limit_break_pool,
@@ -311,6 +334,46 @@ def _fund_report_dates_args(fn):
     return _run
 
 
+def cmd_fund_backtest_result(args):
+    return fund_backtest_result(
+        args.thscode,
+        args.buy_conditions,
+        args.sell_conditions,
+        args.buy_frequency_type,
+        args.max_buy_times,
+        args.per_buy_amount,
+    )
+
+
+def cmd_fund_indicators_line(args):
+    return fund_indicators_line(args.indexes, args.time_range)
+
+
+def cmd_fund_indicators_table(args):
+    return fund_indicators_table(
+        code_selectors=args.code_selectors,
+        indexes=args.indexes,
+        page_info=args.page_info,
+        sort=args.sort,
+    )
+
+
+def cmd_fund_quota_summary(args):
+    return fund_quota_summary(args.tab)
+
+
+def cmd_fund_quota_list(args):
+    return fund_quota_list(args.tab, buy=args.buy)
+
+
+def _boolean(value: str) -> bool:
+    if value == "true":
+        return True
+    if value == "false":
+        return False
+    raise argparse.ArgumentTypeError("expected true or false")
+
+
 def cmd_limit_up_pool(args):
     return special_data_limit_up_pool(
         date_ms=args.date_ms,
@@ -381,6 +444,20 @@ def cmd_dragon_tiger_list(args):
     )
 
 
+def _named_args(fn, *names):
+    def _run(args):
+        return fn(**{name: getattr(args, name) for name in names})
+
+    return _run
+
+
+def _no_args(fn):
+    def _run(_args):
+        return fn()
+
+    return _run
+
+
 # ---------------------------------------------------------------------------
 # argparse wiring
 # ---------------------------------------------------------------------------
@@ -403,7 +480,7 @@ def _add_financials_subparser(sub, name: str, help_text: str, handler):
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
         prog="fuyao",
-        description="Fuyao financial data CLI (56 REST capabilities). JSON-only stdout. "
+        description="Fuyao financial data CLI (62 REST capabilities). JSON-only stdout. "
         "Auth: HITHINK_FINANCE_API_KEY or user credentials file.",
     )
     parser.add_argument("--compact", action="store_true", help="emit single-line JSON")
@@ -626,6 +703,39 @@ def build_parser() -> argparse.ArgumentParser:
         p.add_argument("--thscode", required=True)
         p.set_defaults(func=handler)
 
+    p = sub.add_parser("fund-backtest-result", help="run a stateless online fund backtest")
+    p.add_argument("--thscode", required=True)
+    p.add_argument("--buy-conditions", required=True)
+    p.add_argument("--sell-conditions", required=True)
+    p.add_argument("--buy-frequency-type", required=True)
+    p.add_argument("--max-buy-times", type=float, required=True)
+    p.add_argument("--per-buy-amount", type=float, required=True)
+    p.set_defaults(func=cmd_fund_backtest_result)
+
+    p = sub.add_parser("fund-backtest-indicators", help="list fund backtest indicators")
+    p.set_defaults(func=lambda _args: fund_backtest_indicators())
+
+    p = sub.add_parser("fund-indicators-line", help="query line-oriented fund indicators")
+    p.add_argument("--indexes", required=True)
+    p.add_argument("--time-range", required=True)
+    p.set_defaults(func=cmd_fund_indicators_line)
+
+    p = sub.add_parser("fund-indicators-table", help="query table-oriented fund indicators")
+    p.add_argument("--code-selectors")
+    p.add_argument("--indexes")
+    p.add_argument("--page-info")
+    p.add_argument("--sort")
+    p.set_defaults(func=cmd_fund_indicators_table)
+
+    p = sub.add_parser("fund-quota-summary", help="query QDII quota summaries")
+    p.add_argument("--tab", required=True)
+    p.set_defaults(func=cmd_fund_quota_summary)
+
+    p = sub.add_parser("fund-quota-list", help="query QDII fund quotas")
+    p.add_argument("--tab", required=True)
+    p.add_argument("--buy", type=_boolean)
+    p.set_defaults(func=cmd_fund_quota_list)
+
     p = sub.add_parser("fund-indicators-history", help="historical fund performance indicators")
     p.add_argument("--thscode", required=True)
     p.add_argument("--start-ms", dest="start_ms", type=int, required=True)
@@ -658,6 +768,38 @@ def build_parser() -> argparse.ArgumentParser:
     p = sub.add_parser("fund-offerings", help="active or upcoming fund offerings")
     p.add_argument("--subscribe", required=True, choices=["active", "upcoming"])
     p.set_defaults(func=cmd_fund_offerings)
+
+    derivative_commands = (
+        ("futures-varieties", futures_varieties, ()),
+        ("futures-contract-detail", futures_contract_detail, (("thscode", str, True, None),)),
+        ("futures-variety-positions", futures_variety_positions, (("date", str, True, None),)),
+        ("futures-company-variety-positions", futures_company_variety_positions, (("date", str, True, None), ("varieties", str, True, None))),
+        ("futures-contract-positions", futures_contract_positions, (("thscode", str, True, None), ("variety", str, True, None), ("date", str, True, None))),
+        ("futures-contract-position-history", futures_contract_position_history, (("thscode", str, True, None), ("variety", str, True, None), ("company", str, True, None), ("start_date", str, True, None))),
+        ("futures-position-companies", futures_position_companies, ()),
+        ("futures-warehouse-receipts", futures_warehouse_receipts, (("thscode", str, True, None), ("start_date", str, True, None), ("end_date", str, True, None))),
+        ("futures-latest-basis", futures_latest_basis, ()),
+        ("futures-basis-history", futures_basis_history, (("thscode", str, True, None), ("spot_indicator_id", str, False, None))),
+        ("futures-trading-schedule", futures_trading_schedule, (("thscode", str, True, None), ("start_date", str, True, None), ("end_date", str, True, None))),
+        ("futures-intraday", futures_intraday, (("thscode", str, True, None), ("session", str, False, ("pre_market", "intraday", "post_market")))),
+        ("futures-daily", futures_daily, (("thscode", str, True, None), ("start", int, False, None), ("end", int, False, None))),
+        ("options-varieties", options_varieties, ()),
+        ("options-contract-detail", options_contract_detail, (("thscode", str, True, None),)),
+        ("options-intraday", options_intraday, (("thscode", str, True, None), ("session", str, False, ("pre_market", "intraday", "post_market")))),
+        ("options-daily", options_daily, (("thscode", str, True, None), ("start", int, False, None), ("end", int, False, None))),
+    )
+    for name, handler, arguments in derivative_commands:
+        p = sub.add_parser(name, help=f"query {name.replace('-', ' ')}")
+        argument_names = []
+        for argument, value_type, required, choices in arguments:
+            option = "--" + argument.replace("_", "-")
+            kwargs = {"dest": argument, "type": value_type, "required": required}
+            if choices is not None:
+                kwargs["choices"] = choices
+                kwargs["default"] = "intraday"
+            p.add_argument(option, **kwargs)
+            argument_names.append(argument)
+        p.set_defaults(func=_no_args(handler) if not argument_names else _named_args(handler, *argument_names))
 
     for name, help_text, handler in (
         ("fund-stock-history", "historical fund stock holdings", _fund_portfolio_history_args(fund_portfolio_stock_history)),

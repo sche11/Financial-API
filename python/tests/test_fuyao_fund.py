@@ -116,6 +116,12 @@ def test_fund_functions_do_not_expose_fund_type_input() -> None:
         ("fund_portfolio_bond_history", ("025480.OF", "quarter", "2025-12-31"), {}, "/api/fund/portfolio/bond-history", {"thscode": "025480.OF", "report_type": "quarter", "end_date": "2025-12-31"}),
         ("fund_portfolio_bond_report_dates", ("025480.OF",), {"report_type": "quarter"}, "/api/fund/portfolio/bond-report-dates", {"thscode": "025480.OF", "report_type": "quarter"}),
         ("fund_portfolio_asset_allocation", ("025480.OF",), {}, "/api/fund/portfolio/asset-allocation", {"thscode": "025480.OF"}),
+        ("fund_backtest_indicators", (), {}, "/api/fund/backtest/indicators", {}),
+        ("fund_backtest_result", ("000001.OF", "{}", "[]", "WEEKLY", 3, 1000.5), {}, "/api/fund/backtest/result", {"thscode": "000001.OF", "buy_conditions": "{}", "sell_conditions": "[]", "buy_frequency_type": "WEEKLY", "max_buy_times": 3, "per_buy_amount": 1000.5}),
+        ("fund_indicators_line", ('[{"thscodes":["000001.OF"],"index_info":[{"index_id":"rsi_pct"}]}]', '{"time_type":"DAY_1","start":1704729600000,"end":1704902400000}'), {}, "/api/fund/indicators/line", {"indexes": '[{"thscodes":["000001.OF"],"index_info":[{"index_id":"rsi_pct"}]}]', "time_range": '{"time_type":"DAY_1","start":1704729600000,"end":1704902400000}'}),
+        ("fund_indicators_table", (), {"code_selectors": '{"include":[{"type":"fund_code","thscodes":["000001.OF"]}]}', "indexes": '[{"index_id":"rsi_pct","timestamp":0}]', "page_info": '{"page_begin":0,"page_size":20}', "sort": '[{"idx":0,"type":"desc"}]'}, "/api/fund/indicators/table", {"code_selectors": '{"include":[{"type":"fund_code","thscodes":["000001.OF"]}]}', "indexes": '[{"index_id":"rsi_pct","timestamp":0}]', "page_info": '{"page_begin":0,"page_size":20}', "sort": '[{"idx":0,"type":"desc"}]'}),
+        ("fund_quota_summary", ('["nazhi100"]',), {}, "/api/fund/quota/summary", {"tab": '["nazhi100"]'}),
+        ("fund_quota_list", ('["nazhi100"]',), {"buy": True}, "/api/fund/quota/list", {"tab": '["nazhi100"]', "buy": True}),
     ],
 )
 def test_fund_functions_map_the_published_contract(
@@ -175,6 +181,13 @@ def test_fund_functions_map_the_published_contract(
         (lambda: fuyao_client.fund_managers_performance("manager-1", range="invalid"), "range"),
         (lambda: fuyao_client.fund_news_article_list("025480.OF", limit=101), "limit"),
         (lambda: fuyao_client.fund_offerings_list("closed"), "subscribe"),
+        (lambda: fuyao_client.fund_backtest_result("000001", "{}", "[]", "WEEKLY", 3, 1000), "thscode"),
+        (lambda: fuyao_client.fund_backtest_result("000001.OF", "{} trailing", "[]", "WEEKLY", 3, 1000), "buy_conditions"),
+        (lambda: fuyao_client.fund_indicators_line('[{"thscodes":["000001"]}]', '{"time_type":"DAY_1"}'), "indexes"),
+        (lambda: fuyao_client.fund_indicators_line('[]', '{"time_type":"DAY_1","start":2,"end":1}'), "time_range"),
+        (lambda: fuyao_client.fund_indicators_table(code_selectors='{"include":[{"type":"fund_code","values":["000001"]}]}'), "code_selectors"),
+        (lambda: fuyao_client.fund_quota_list('[1]'), "tab"),
+        (lambda: fuyao_client.fund_quota_list('[""]'), "tab"),
     ],
 )
 def test_fund_functions_reject_invalid_input_before_http(monkeypatch, call, message):
@@ -186,6 +199,33 @@ def test_fund_functions_reject_invalid_input_before_http(monkeypatch, call, mess
 
     with pytest.raises(ValueError, match=message):
         call()
+
+
+@pytest.mark.parametrize(
+    "call",
+    [
+        lambda: fuyao_client.fund_backtest_indicators(),
+        lambda: fuyao_client.fund_quota_summary('["nazhi100"]'),
+        lambda: fuyao_client.fund_quota_list('["nazhi100"]'),
+    ],
+)
+@pytest.mark.parametrize("payload_data", [[], [None]])
+def test_array_fund_functions_preserve_array_response(monkeypatch, call, payload_data):
+    class EmptyArrayResponse:
+        def raise_for_status(self):
+            return None
+
+        def json(self):
+            return {"code": 0, "data": payload_data}
+
+    class EmptyArraySession:
+        def get(self, *_args, **_kwargs):
+            return EmptyArrayResponse()
+
+    monkeypatch.setattr(fuyao_client, "_session", lambda: EmptyArraySession())
+    monkeypatch.setattr(fuyao_client, "_token", lambda: "test-placeholder")
+
+    assert call() == payload_data
 
 
 def test_ticker_asset_types_accept_normalized_multi_values(monkeypatch):
@@ -244,6 +284,36 @@ def test_fund_cli_commands_are_registered_and_map_arguments(monkeypatch):
             {"range": "year", "nav_type": "unit,adj"},
         )
     ]
+
+
+def test_fund_functional_cli_commands_map_complex_arguments(monkeypatch):
+    calls = []
+    monkeypatch.setattr(
+        fuyao_cli,
+        "fund_backtest_result",
+        lambda *args: calls.append(args) or {},
+    )
+    parser = fuyao_cli.build_parser()
+    args = parser.parse_args(
+        [
+            "fund-backtest-result",
+            "--thscode",
+            "000001.OF",
+            "--buy-conditions",
+            "{}",
+            "--sell-conditions",
+            "[]",
+            "--buy-frequency-type",
+            "WEEKLY",
+            "--max-buy-times",
+            "3",
+            "--per-buy-amount",
+            "1000.5",
+        ]
+    )
+    args.func(args)
+
+    assert calls == [("000001.OF", "{}", "[]", "WEEKLY", 3.0, 1000.5)]
 
 
 def test_fund_holders_cli_maps_merge_scope(monkeypatch):

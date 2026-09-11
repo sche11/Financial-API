@@ -52,6 +52,9 @@ def test_root_readme_has_current_brand_positioning_and_quick_start() -> None:
     ):
         assert server_name in readme
     assert "examples/inspirations/01-stock-overview/preview.jpg" in readme
+    assert "同花顺AI客户端尚未发布接入本项目数据源的版本" in readme
+    assert "后续版本计划接入" in readme
+    assert "金融数据与分析能力已内置，打开客户端即可使用" not in readme
 
 
 def test_root_changelog_preserves_history_and_documents_this_release() -> None:
@@ -82,6 +85,7 @@ def test_root_skills_are_consolidated_to_hithink_finance() -> None:
     references = REPO_ROOT / "skills" / "hithink-finance" / "references"
     assert {path.name for path in references.glob("*.md")} == {
         "api.md",
+        "client-only-capabilities.md",
         "cli.md",
         "mcp.md",
         "python-sdk.md",
@@ -101,8 +105,9 @@ def test_upstream_api_contract_has_one_canonical_source_and_skill_mirror() -> No
         "capability-map.md",
         "endpoints-auction.md",
         "endpoints-calendar.md",
-            "endpoints-financials.md",
-            "endpoints-fund.md",
+        "endpoints-derivatives.md",
+        "endpoints-financials.md",
+        "endpoints-fund.md",
         "endpoints-index.md",
         "endpoints-market-dumps.md",
         "endpoints-meta.md",

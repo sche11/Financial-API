@@ -17,7 +17,7 @@ test('every remote command exposes help without making a network request', async
     ]);
     expect(result.stdout).toContain(`Usage: hithink-finance ${capability.command.join(' ')}`);
   }
-}, 60_000);
+}, 90_000);
 
 test('executes a descriptor-backed command against a bounded local fixture', async () => {
   const server = createServer((request, response) => {

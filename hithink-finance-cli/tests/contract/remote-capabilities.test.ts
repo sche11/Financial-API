@@ -1,7 +1,7 @@
 import { describe, expect, test } from 'vitest';
 import { remoteCapabilities } from '../../src/contracts/remote-capabilities.js';
 
-const EXPECTED_56_IDS = [
+const EXPECTED_79_IDS = [
   'symbol.search',
   'symbol.list',
   'market.snapshot',
@@ -47,6 +47,29 @@ const EXPECTED_56_IDS = [
   'fund.bond-history',
   'fund.bond-report-dates',
   'fund.asset-allocation',
+  'fund.backtest-result',
+  'fund.backtest-indicators',
+  'fund.indicators-line',
+  'fund.indicators-table',
+  'fund.quota-summary',
+  'fund.quota-list',
+  'futures.varieties',
+  'futures.contract-detail',
+  'futures.variety-positions',
+  'futures.company-variety-positions',
+  'futures.contract-positions',
+  'futures.contract-position-history',
+  'futures.position-companies',
+  'futures.warehouse-receipts',
+  'futures.latest-basis',
+  'futures.basis-history',
+  'futures.trading-schedule',
+  'futures.intraday',
+  'futures.daily',
+  'options.varieties',
+  'options.contract-detail',
+  'options.intraday',
+  'options.daily',
   'special.limit-up-pool',
   'special.limit-down-pool',
   'special.limit-break-pool',
@@ -60,14 +83,69 @@ const EXPECTED_56_IDS = [
   'special.dragon-tiger',
 ];
 
-test('registers exactly the frozen 56 remote capabilities with unique command paths', () => {
+test('registers exactly the frozen 79 remote capabilities with unique command paths', () => {
   expect(remoteCapabilities.map((capability) => capability.id).sort()).toEqual(
-    EXPECTED_56_IDS.sort(),
+    EXPECTED_79_IDS.sort(),
   );
   expect(new Set(remoteCapabilities.map((capability) => capability.command.join(' '))).size).toBe(
-    56,
+    79,
   );
   expect(remoteCapabilities.every((capability) => capability.method === 'GET')).toBe(true);
+});
+
+test('maps all 17 public futures and options commands to their REST endpoints', () => {
+  const derivatives = remoteCapabilities.filter((capability) =>
+    ['futures', 'options'].includes(capability.command[0]),
+  );
+  expect(derivatives.map(({ id, command, endpoint }) => [id, command.join(' '), endpoint])).toEqual(
+    [
+      ['futures.varieties', 'futures varieties', '/api/futures/varieties/list'],
+      ['futures.contract-detail', 'futures contract-detail', '/api/futures/contracts/detail'],
+      [
+        'futures.variety-positions',
+        'futures variety-positions',
+        '/api/futures/positions/variety-daily',
+      ],
+      [
+        'futures.company-variety-positions',
+        'futures company-variety-positions',
+        '/api/futures/positions/company-variety-daily',
+      ],
+      [
+        'futures.contract-positions',
+        'futures contract-positions',
+        '/api/futures/positions/contract-daily',
+      ],
+      [
+        'futures.contract-position-history',
+        'futures contract-position-history',
+        '/api/futures/positions/contract-historical',
+      ],
+      [
+        'futures.position-companies',
+        'futures position-companies',
+        '/api/futures/positions/company-list',
+      ],
+      [
+        'futures.warehouse-receipts',
+        'futures warehouse-receipts',
+        '/api/futures/warehouse-receipts/historical',
+      ],
+      ['futures.latest-basis', 'futures latest-basis', '/api/futures/basis/main-continuous-latest'],
+      ['futures.basis-history', 'futures basis-history', '/api/futures/basis/historical'],
+      [
+        'futures.trading-schedule',
+        'futures trading-schedule',
+        '/api/futures/calendar/trading-schedule',
+      ],
+      ['futures.intraday', 'futures intraday', '/api/futures/prices/intraday'],
+      ['futures.daily', 'futures daily', '/api/futures/prices/daily'],
+      ['options.varieties', 'options varieties', '/api/options/varieties/list'],
+      ['options.contract-detail', 'options contract-detail', '/api/options/contracts/detail'],
+      ['options.intraday', 'options intraday', '/api/options/prices/intraday'],
+      ['options.daily', 'options daily', '/api/options/prices/daily'],
+    ],
+  );
 });
 
 test('maps valuation snapshot to its dedicated command and validates raw code tokens', () => {
@@ -94,7 +172,7 @@ test('maps valuation snapshot to its dedicated command and validates raw code to
   expect(valuation.inputSchema.safeParse({ thscodes: '000300.TI' }).success).toBe(false);
 });
 
-test('keeps all 28 fund capabilities under the fund command group', () => {
+test('keeps all 34 fund capabilities under the fund command group', () => {
   const fund = remoteCapabilities.filter((capability) => capability.id.startsWith('fund.'));
   expect(fund.map((capability) => capability.command.join(' '))).toEqual([
     'fund profile',
@@ -125,6 +203,12 @@ test('keeps all 28 fund capabilities under the fund command group', () => {
     'fund bond-history',
     'fund bond-report-dates',
     'fund asset-allocation',
+    'fund backtest-result',
+    'fund backtest-indicators',
+    'fund indicators-line',
+    'fund indicators-table',
+    'fund quota-summary',
+    'fund quota-list',
   ]);
   expect(fund.map((capability) => capability.endpoint)).toEqual([
     '/api/fund/profile/detail',
@@ -155,7 +239,68 @@ test('keeps all 28 fund capabilities under the fund command group', () => {
     '/api/fund/portfolio/bond-history',
     '/api/fund/portfolio/bond-report-dates',
     '/api/fund/portfolio/asset-allocation',
+    '/api/fund/backtest/result',
+    '/api/fund/backtest/indicators',
+    '/api/fund/indicators/line',
+    '/api/fund/indicators/table',
+    '/api/fund/quota/summary',
+    '/api/fund/quota/list',
   ]);
+});
+
+test('validates fund functional JSON parameters before HTTP', () => {
+  const backtest = remoteCapabilities.find((candidate) => candidate.id === 'fund.backtest-result')!;
+  expect(backtest.endpoint).toBe('/api/fund/backtest/result');
+  expect(
+    backtest.inputSchema.safeParse({
+      thscode: '000001.OF',
+      buyConditions: '{"indicator_code":"rsi","value":0.5}',
+      sellConditions: '[]',
+      buyFrequencyType: 'WEEKLY',
+      maxBuyTimes: 3,
+      perBuyAmount: 1000.5,
+    }).success,
+  ).toBe(true);
+  expect(
+    backtest.inputSchema.safeParse({
+      thscode: '000001',
+      buyConditions: '{} trailing',
+      sellConditions: '[]',
+      buyFrequencyType: 'WEEKLY',
+      maxBuyTimes: 3,
+      perBuyAmount: 1000,
+    }).success,
+  ).toBe(false);
+
+  const line = remoteCapabilities.find((candidate) => candidate.id === 'fund.indicators-line')!;
+  expect(line.endpoint).toBe('/api/fund/indicators/line');
+  expect(
+    line.inputSchema.safeParse({
+      indexes: '[{"thscodes":["000001.OF"],"index_info":[{"index_id":"rsi_pct"}]}]',
+      timeRange: '{"time_type":"DAY_1","start":1704729600000,"end":1704902400000}',
+    }).success,
+  ).toBe(true);
+  expect(
+    line.inputSchema.safeParse({
+      indexes: '[{"thscodes":["000001"],"index_info":[]}]',
+      timeRange: '{"time_type":"DAY_1","start":2,"end":1}',
+    }).success,
+  ).toBe(false);
+
+  const table = remoteCapabilities.find((candidate) => candidate.id === 'fund.indicators-table')!;
+  expect(table.endpoint).toBe('/api/fund/indicators/table');
+  expect(table.inputSchema.safeParse({}).success).toBe(true);
+  expect(
+    table.inputSchema.safeParse({
+      codeSelectors: '{"include":[{"type":"fund_code","values":["000001"]}]}',
+    }).success,
+  ).toBe(false);
+
+  const quota = remoteCapabilities.find((candidate) => candidate.id === 'fund.quota-list')!;
+  expect(quota.endpoint).toBe('/api/fund/quota/list');
+  expect(quota.inputSchema.safeParse({ tab: '["nazhi100"]', buy: true }).success).toBe(true);
+  expect(quota.inputSchema.safeParse({ tab: '[1]' }).success).toBe(false);
+  expect(quota.inputSchema.safeParse({ tab: '[""]' }).success).toBe(false);
 });
 
 test('uses thscode as the sole fund identifier and validates historical boundaries', () => {
@@ -173,6 +318,7 @@ test('uses thscode as the sole fund identifier and validates historical boundari
   );
 
   const history = remoteCapabilities.find((candidate) => candidate.id === 'fund.history')!;
+  expect(history.description).toContain('forward-adjusted');
   expect(
     history.inputSchema.safeParse({ thscode: '510300.SH', startMs: 1, endMs: 2 }).success,
   ).toBe(true);
@@ -183,6 +329,13 @@ test('uses thscode as the sole fund identifier and validates historical boundari
       endMs: 5 * 366 * 24 * 60 * 60 * 1000 + 2,
     }).success,
   ).toBe(false);
+
+  const stockHistory = remoteCapabilities.find(
+    (candidate) => candidate.id === 'fund.stock-history',
+  )!;
+  const bondHistory = remoteCapabilities.find((candidate) => candidate.id === 'fund.bond-history')!;
+  expect(stockHistory.description).toContain('rank is populated only for the top 10');
+  expect(bondHistory.description).toContain('rank is populated only for the top 10');
 
   const snapshot = remoteCapabilities.find((candidate) => candidate.id === 'fund.snapshot')!;
   expect(snapshot.inputSchema.safeParse({ thscode: '510300.SH' }).success).toBe(true);

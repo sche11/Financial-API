@@ -16,7 +16,7 @@ GET /api/meta/tickers/search
 | --- | --- | --- | --- | --- | --- |
 | `q` | query | string | 是 | 检索词，支持 thscode / ticker / 中英文名子串。 | — |
 | `exchange` | query | string | 否 | 交易所过滤，枚举 `SH` / `SZ` / `BJ`。 | — |
-| `asset_type` | query | string | 否 | 资产类别过滤；支持逗号分隔多个值：`a-share` / `a-share-index` / `forex` / `fund-otc` / `fund-etf` / `fund-lof` / `fund-reits`。 | — |
+| `asset_type` | query | string | 否 | 资产类别过滤；支持逗号分隔多个值：`a-share` / `a-share-index` / `forex` / `fund-otc` / `fund-etf` / `fund-lof` / `fund-reits` / `futures` / `options`。 | — |
 | `limit` | query | integer | 否 | 返回条数上限，≤ 50。 | `10` |
 
 ### 请求示例
@@ -36,7 +36,11 @@ curl 'https://fuyao.aicubes.cn/api/meta/tickers/search?q=贵州茅台&limit=5' \
 | `ticker` | string | 纯代码，如 `600519`。 |
 | `name` | string | 展示名称。 |
 | `exchange` | string | 交易所后缀（`SH` / `SZ` / `BJ`），无后缀指数为 `null`。 |
-| `asset_type` | string | 资产类别：A 股、指数、外汇或基金叶子类型。 |
+| `asset_type` | string | 资产类别：A 股、指数、外汇、基金叶子类型、期货或期权。 |
+| `list_date` | string/null | 上市日期，衍生品可能返回。 |
+| `end_date` | string/null | 终止日期，衍生品可能返回。 |
+| `last_trade_date` | string/null | 最后交易日，衍生品可能返回。 |
+| `last_delivery_date` | string/null | 最后交割日，衍生品可能返回。 |
 | `currency` | string | 币种代码。 |
 
 ### 避错要点

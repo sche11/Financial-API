@@ -77,7 +77,7 @@ const domainConfigs = {
       ['预览卸载', '`hithink-finance uninstall --plan --format json`'],
     ],
     boundaries: [
-      '业务取数请求必须切到 symbol、market、special-data、financials、index、fund、valuation、data 或 research skill。',
+      '业务取数请求必须切到 symbol、market、special-data、financials、index、fund、futures、options、valuation、data 或 research skill。',
       '不要把 API Key 写入命令、配置文件、日志、Markdown、Git 或对话正文；优先 stdin 或系统凭据库。',
       '不要把 stderr 更新提示、诊断详情或完整大数据结果当作最终答案原样展开。',
     ],
@@ -175,7 +175,7 @@ const domainConfigs = {
   },
   fund: {
     description:
-      '用于 Agent 通过 hithink-finance CLI 查询基金档案、公司、经理、财务、诊断、资讯、募集、持仓、净值、收益、持有人结构、ETF/LOF 快照和 ETF 历史；A 股行情转 hithink-finance-market，基金代码搜索转 hithink-finance-symbol。',
+      '用于 Agent 通过 hithink-finance CLI 查询基金档案、公司、经理、财务、诊断、资讯、募集、持仓、净值、收益、持有人结构、在线回测、通用指标、QDII 额度、ETF/LOF 快照和 ETF 历史；A 股行情转 hithink-finance-market，基金代码搜索转 hithink-finance-symbol。',
     identity:
       '基金资料、机构与经理、财务、业绩、披露和场内行情入口。根据基金类型、标识来源与市场形态选择稳定命令。',
     decisions: [
@@ -184,6 +184,12 @@ const domainConfigs = {
       ['基金净值', '`fund nav`'],
       ['基金区间收益', '`fund returns`'],
       ['基金持有人结构', '`fund holders`'],
+      [
+        '基金在线回测',
+        '先用 `fund backtest-indicators` 获取指标规则，再调用 `fund backtest-result`',
+      ],
+      ['基金画线/表格指标', '`fund indicators-line` / `fund indicators-table`'],
+      ['QDII 额度汇总/列表', '`fund quota-summary` / `fund quota-list`'],
       ['基金公司详情', '`fund company-detail`'],
       [
         '基金经理资料/经历/业绩/风格',
@@ -203,8 +209,46 @@ const domainConfigs = {
     ],
     boundaries: [
       '按基金查询的能力使用单个 `thscode` 唯一定位基金。',
+      '复杂对象和数组参数使用 JSON 字符串；绝对时间使用 Unix 毫秒，动态字段与局部空值保持原义。',
       '`fund snapshot` 只支持 ETF/LOF；`fund history` 只支持 ETF、固定 `1d` 且窗口最多 5 年。',
       '基金数据不是投资建议，不要据此扩写买卖或收益承诺。',
+    ],
+  },
+  futures: {
+    description:
+      '用于 Agent 通过 hithink-finance CLI 查询公开期货品种、合约详情、持仓、仓单、基差、交易日程、分时和日 K；端内专用的品种板块、重点合约目录、F10 与会话时间轴不在本 skill 范围。',
+    identity: '期货公开资料和行情入口。按完整 thscode、品种与日期语义选择稳定命令。',
+    decisions: [
+      ['期货品种', '`futures varieties`'],
+      ['合约详情', '`futures contract-detail`'],
+      ['品种或公司持仓', '`futures variety-positions` / `futures company-variety-positions`'],
+      ['合约持仓', '`futures contract-positions` / `futures contract-position-history`'],
+      [
+        '仓单或基差',
+        '`futures warehouse-receipts` / `futures latest-basis` / `futures basis-history`',
+      ],
+      ['交易日程', '`futures trading-schedule`'],
+      ['分时或日 K', '`futures intraday` / `futures daily`'],
+    ],
+    boundaries: [
+      '使用完整期货 thscode；品种代码必须大写并与合约匹配。',
+      '历史持仓开始日在调用日前一年内；daily 的 start/end 必须成对提供。',
+      '金融数值与日期允许 null，合法无数据数组保留为空数组。',
+    ],
+  },
+  options: {
+    description:
+      '用于 Agent 通过 hithink-finance CLI 查询公开期权品种、合约详情、分时和日 K；端内专用会话时间轴不在本 skill 范围。',
+    identity: '期权公开资料和行情入口。按完整 thscode 和固定行情参数查询。',
+    decisions: [
+      ['期权品种', '`options varieties`'],
+      ['合约详情', '`options contract-detail`'],
+      ['分时或日 K', '`options intraday` / `options daily`'],
+    ],
+    boundaries: [
+      '分时 session 仅为 pre_market、intraday 或 post_market。',
+      '日 K 周期固定 1d；start/end 必须成对提供。',
+      '金融数值与日期允许 null，未知期权枚举保留原始编码。',
     ],
   },
   valuation: {
@@ -281,6 +325,8 @@ const domainOrder = [
   'financials',
   'index',
   'fund',
+  'futures',
+  'options',
   'valuation',
   'data',
   'research',
@@ -471,10 +517,10 @@ hithink-finance skills remove --format json
 
 - \`status\` 只检查 CLI 包内 manifest 和规范目录；\`targets_verified: false\` 表示尚未验证各 Agent 的发现目录，不能据此宣称已安装。
 - \`sync\` 与 \`sync --repair\` 都会覆盖同步缺失或漂移的官方文件；后者在结构化结果中返回 \`mode: repair\`，便于更新流程和自动化审计。
-- WorkBuddy 和 QClaw 的客户端根目录已存在时，额外把 10 个官方 Skill 同步到 \`~/.workbuddy/skills\` 和 \`~/.qclaw/skills\`，并按 manifest 校验结果；不创建未安装客户端的根目录。
+- WorkBuddy 和 QClaw 的客户端根目录已存在时，额外把 12 个官方 Skill 同步到 \`~/.workbuddy/skills\` 和 \`~/.qclaw/skills\`，并按 manifest 校验结果；不创建未安装客户端的根目录。
 - 专属目录中的官方文件被用户修改时先创建备份，再写入当前包版本；同步失败返回部分失败，不把未完成更新报告为成功。
-- \`remove\` 只移除本 CLI manifest 拥有的 10 个 skill，不做全局清空。
-- 若某个 Agent 不在自动安装范围内，读取 \`status --format json\` 的 \`canonical\` 目录，并把其中 10 个 \`hithink-finance-*\` 目录复制到该 Agent 文档声明的 skills 发现目录。
+- \`remove\` 只移除本 CLI manifest 拥有的 12 个 skill，不做全局清空。
+- 若某个 Agent 不在自动安装范围内，读取 \`status --format json\` 的 \`canonical\` 目录，并把其中 12 个 \`hithink-finance-*\` 目录复制到该 Agent 文档声明的 skills 发现目录。
 
 ## 常见错误
 
@@ -703,7 +749,7 @@ ${table([['用户意图', '首选命令 / 路由'], ['---', '---'], ...config.de
 | 能力 | 凭据 |
 | --- | --- |
 | 本地 data/db/market panel | 通常不需要 API Key，除非需要同步或初始化远端 dump |
-| symbol/market remote/special/financials/index/fund/valuation | 需要统一 API Key |
+| symbol/market remote/special/financials/index/fund/futures/options/valuation | 需要统一 API Key |
 | skills/update/uninstall | 需要本机文件系统权限；不要写全局非 CLI 管理目录 |
 
 ## 边界声明

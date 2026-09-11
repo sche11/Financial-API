@@ -1,6 +1,6 @@
 # 公募基金端点
 
-> 基金基本资料、披露数据、净值、收益、持有人结构以及场内基金行情。先通过元信息端点把名称或代码消歧为带后缀的唯一 `thscode`。
+> 基金基本资料、披露数据、净值、收益、持有人结构、在线回测、通用指标、QDII 额度以及场内基金行情。先通过元信息端点把名称或代码消歧为带后缀的唯一 `thscode`。
 
 ## 公共参数
 
@@ -194,11 +194,11 @@ curl 'https://fuyao.aicubes.cn/api/fund/market/historical?thscode=510300.SH&inte
   -H 'X-api-key: <your-api-key>'
 ```
 
-`data` 为 `{timestamp, thscode, interval, item[]}`；基金历史行情不提供 `adjust`。`item[]` 字段为 `date_ms`、`open_price`、`high_price`、`low_price`、`close_price`、`volume`、`turnover`。
+`data` 为 `{timestamp, thscode, interval, item[]}`；该接口固定返回前复权日线，不提供 `adjust` 参数。`item[]` 字段为 `date_ms`、`open_price`、`high_price`、`low_price`、`close_price`、`volume`、`turnover`。
 
 ### 避错要点
 
-- 不要传复权参数；ETF 历史端点没有 `adjust`。
+- 不要传复权参数；ETF 历史端点固定使用前复权口径，没有 `adjust`。
 - 超过 5 年时拆成不重叠窗口，合并后按 `date_ms` 去重排序。
 - 不要把 LOF 快照可用误解为 LOF 历史也可用；历史当前仅 ETF。
 
@@ -531,9 +531,12 @@ curl 'https://fuyao.aicubes.cn/api/fund/portfolio/stock-history?thscode=025480.O
 
 `data.item[]` 字段为 `thscode`、`ticker`、`name`、`asset_type`、`hold_ratio`、`market_value`、`period_increase_pct`、`rank`、`report_type`、`end_date_ms`。
 
+`rank` 为可空字段：只有前十大持仓返回 `1`～`10`，其余持仓返回 `null`。
+
 ### 避错要点
 
 - 不要猜报告类型或截止日期；先调用 report-dates 能力。
+- 不要按 `rank` 是否有值过滤完整持仓；`rank=null` 表示该记录不在前十。
 
 ## 25. 股票持仓报告日期
 
@@ -569,9 +572,12 @@ curl 'https://fuyao.aicubes.cn/api/fund/portfolio/bond-history?thscode=025480.OF
 
 `data.item[]` 字段与股票历史持仓一致，`asset_type` 用于区分资产类型。
 
+`rank` 为可空字段：只有前十大持仓返回 `1`～`10`，其余持仓返回 `null`。
+
 ### 避错要点
 
 - 债券代码不能假定具备 A 股交易所后缀；以返回的 `thscode`/`ticker` 为准。
+- 不要按 `rank` 是否有值过滤完整持仓；`rank=null` 表示该记录不在前十。
 
 ## 27. 债券持仓报告日期
 
@@ -610,6 +616,150 @@ curl 'https://fuyao.aicubes.cn/api/fund/portfolio/asset-allocation?thscode=02548
 ### 避错要点
 
 - 各比例按报告期披露且为百分数原值；空值不补零，也不要强制归一化为 100。
+
+## 29. 基金在线回测
+
+operationId：`get_fund_backtest_result`
+
+```text
+GET /api/fund/backtest/result
+```
+
+参数：`thscode`、`buy_conditions`、`sell_conditions`、`buy_frequency_type`、`max_buy_times`、`per_buy_amount` 均必填。`thscode` 是完整基金代码；买卖条件分别是 JSON 对象或数组字符串；次数和金额为数值。业务频率、指标及操作符由回测指标目录定义，本接口不增加本地枚举。
+
+```bash
+curl --get 'https://fuyao.aicubes.cn/api/fund/backtest/result' \
+  -H 'X-api-key: <your-api-key>' \
+  --data-urlencode 'thscode=000001.OF' \
+  --data-urlencode 'buy_conditions={"indicator_code":"rsi","operator":">","value":0.5}' \
+  --data-urlencode 'sell_conditions=[]' \
+  --data-urlencode 'buy_frequency_type=WEEKLY' \
+  --data-urlencode 'max_buy_times=3' \
+  --data-urlencode 'per_buy_amount=1000'
+```
+
+`data` 字段为 `start_date`、`end_date`、`metrics`、`trade_count`、`trades[]` 和开放结构 `curve_points`。`metrics` 含 `strategy_return`、`fund_return`、`excess_return`、`win_rate`、`max_drawdown`；交易记录含 `trade_date`、`type`、`price`、`amount`、`shares`、`profit`。`curve_points` 兼容数组或带动态键的对象。
+
+### 避错要点
+
+- 本接口每次调用上游执行无状态回测，响应使用 `Cache-Control: no-store`，不会保存任务或缓存结果。
+- 回测结果是数据计算结果，不构成收益承诺或投资建议。
+
+## 30. 基金回测指标目录
+
+operationId：`get_fund_backtest_indicators`
+
+```text
+GET /api/fund/backtest/indicators
+```
+
+无 query 参数。
+
+```bash
+curl 'https://fuyao.aicubes.cn/api/fund/backtest/indicators' \
+  -H 'X-api-key: <your-api-key>'
+```
+
+`data[]` 字段为 `id`、`indicator_name`、`indicator_code`、`type`、`value_kind`、`support_operation`、`unit`、`description`、`state_rules`、`create_time`、`update_time`。时间字段是 ISO 本地日期时间字符串。
+
+### 避错要点
+
+- 指标目录用于构造回测条件，不要猜测或固化未返回的指标、操作符和值规则。
+
+## 31. 基金画线式指标
+
+operationId：`get_fund_indicators_line`
+
+```text
+GET /api/fund/indicators/line
+```
+
+`indexes` 与 `time_range` 均为必填 JSON 字符串。`indexes[]` 每组使用完整 `thscodes[]`，并以 `index_info[]` 提供 `index_id` 和可选 `attribute`。`time_range.time_type` 必填；`start`/`end` 为 Unix 毫秒整数，`offset` 为整数周期偏移；同时传 `start`/`end` 时必须有序。
+
+```bash
+curl --get 'https://fuyao.aicubes.cn/api/fund/indicators/line' \
+  -H 'X-api-key: <your-api-key>' \
+  --data-urlencode 'indexes=[{"thscodes":["000001.OF"],"index_info":[{"index_id":"rsi_pct"}]}]' \
+  --data-urlencode 'time_range={"time_type":"DAY_1","start":1704729600000,"end":1704902400000}'
+```
+
+`data` 含 `time_range[]`、`indexes[]` 和 `data[]`。指标元信息含 `index_id`、`value_type`、`timestamp`、`time_type`、`attribute`；证券记录含完整 `thscode` 与按 `idx` 关联的 `values[]`。正数时间为 Unix 毫秒，0 或负数保留上游位置选择语义。
+
+### 避错要点
+
+- 局部 `null` 指标、值或数组占位保持原顺序，不能删除或补零。
+- JSON 末尾不得附带额外 token；绝对时间不要误传秒值。
+
+## 32. 基金表格式指标
+
+operationId：`get_fund_indicators_table`
+
+```text
+GET /api/fund/indicators/table
+```
+
+`code_selectors`、`indexes`、`page_info`、`sort` 均为可选 JSON 字符串，省略时不注入默认值。`code_selectors.include[]` 中 `stock_code`/`fund_code` 类型使用完整 `thscodes[]`，其它实体类型使用 `values[]`；`indexes[]` 需要 `index_id`，可带整数 `timestamp` 和 `attribute`；`page_info` 可带零基 `page_begin`、`page_size`、`code_begin`、`code_page_size`；`sort[]` 使用整数 `idx` 和字符串 `type`。
+
+```bash
+curl --get 'https://fuyao.aicubes.cn/api/fund/indicators/table' \
+  -H 'X-api-key: <your-api-key>' \
+  --data-urlencode 'code_selectors={"include":[{"type":"fund_code","thscodes":["000001.OF"]}]}' \
+  --data-urlencode 'indexes=[{"index_id":"rsi_pct","timestamp":0}]' \
+  --data-urlencode 'page_info={"page_begin":0,"page_size":20}' \
+  --data-urlencode 'sort=[{"idx":0,"type":"desc"}]'
+```
+
+`data` 含 `total`、指标元信息 `indexes[]`、证券记录 `data[]` 和可空 `part_order_thscodes[]`。证券记录以完整 `thscode` 标识，值通过 `idx` 与指标元信息关联；动态 `attribute` 与 `value` 保持原值。
+
+### 避错要点
+
+- `timestamp=0` 表示最新，负数表示位置偏移，只有正数表示 Unix 毫秒绝对时间。
+- 不要为可选分页、选择器、指标或排序参数增加客户端默认值。
+
+## 33. QDII 分类额度汇总
+
+operationId：`get_fund_quota_summary`
+
+```text
+GET /api/fund/quota/summary
+```
+
+`tab` 必填，是分类名称的 JSON 字符串数组。
+
+```bash
+curl --get 'https://fuyao.aicubes.cn/api/fund/quota/summary' \
+  -H 'X-api-key: <your-api-key>' \
+  --data-urlencode 'tab=["nazhi100"]'
+```
+
+`data[]` 字段为 `name`、`unlimited`、`total_limit`、`total`、`buy`，数值字符串保持上游原义。
+
+### 避错要点
+
+- tab 是 JSON 数组，不是逗号分隔字符串；未知分类交由上游判断。
+
+## 34. QDII 基金额度列表
+
+operationId：`get_fund_quota_list`
+
+```text
+GET /api/fund/quota/list
+```
+
+`tab` 与汇总接口相同且必填；`buy` 是可选 boolean，省略时不设置可购过滤。
+
+```bash
+curl --get 'https://fuyao.aicubes.cn/api/fund/quota/list' \
+  -H 'X-api-key: <your-api-key>' \
+  --data-urlencode 'tab=["nazhi100"]' \
+  --data-urlencode 'buy=true'
+```
+
+`data[]` 按 `name`、`sub_tab[]`、`fund_list[]` 分层；基金字段为完整 `thscode`、`fund_name`、`quota`、`year`。`quota` 为 `null` 表示无限额。
+
+### 避错要点
+
+- 局部 `null` 分类、子分类或基金占位保持原顺序；非空基金记录才要求可解析的完整 `thscode`。
 
 ## 基金专用错误语义
 

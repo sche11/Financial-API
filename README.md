@@ -7,14 +7,17 @@
 
 **同花顺金融数据服务（hithink-finance）** 是由同花顺官方提供和维护的 A股金融数据服务，面向 AI Agent、量化研究者和应用开发者。
 
-通过一个统一的 API Key，即可查询 A股最新行情、集合竞价、财务报表、估值、指数、板块、公募基金资料与净值、涨跌停、炸板、个股异动、热榜和龙虎榜等数据，并将数据接入 AI 工具、Python 研究脚本、量化程序或业务系统。
+通过一个统一的 API Key，即可查询 A股最新行情、集合竞价、财务报表、估值、指数、板块、公募基金、公开期货期权资料与行情、涨跌停、炸板、个股异动、热榜和龙虎榜等数据，并将数据接入 AI 工具、Python 研究脚本、量化程序或业务系统。
 
 > 一站式同花顺官方金融数据能力，覆盖 API、MCP、CLI、Python SDK、本地数据库和 Agent Skill。
 
 - 官网：<https://fuyao.aicubes.cn/>
 - 在线文档：<https://fuyao.aicubes.cn/docs/>
 - API Key 管理：<https://fuyao.aicubes.cn/admin/>
+- 同花顺AI客户端：[了解并下载](https://lumi.10jqka.com.cn/?channel=Hithink-API)
 - 仓库文档中心：[`docs/`](docs/README.md)
+
+> 当前请使用本项目的 API、MCP、CLI、Python SDK 和 Agent Skill 接入金融数据。同花顺AI客户端尚未发布接入本项目数据源的版本，后续版本计划接入，敬请期待。
 
 ---
 
@@ -27,6 +30,7 @@
 - 获取交易日历、公司行动、复权因子等基础研究数据。
 - 查询集合竞价快照、短期基准、涨跌停池、炸板池、连板天梯、个股异动、热榜和龙虎榜。
 - 查询公募基金资料、公司、经理、财务、持仓、业绩、公开资讯以及 ETF/LOF 场内行情。
+- 查询公开期货期权品种、合约、持仓、仓单、基差、日程、分时和日 K。
 - 下载全市场数据，为回测、选股、因子研究和 AI 分析准备数据。
 - 让 Claude、Cursor、Windsurf 等支持 MCP 或 Agent Skill 的工具直接调用金融数据。
 - 在本地构建 DuckDB 数据库，完成增量同步、SQL 查询、复权计算和文件导出。
@@ -41,7 +45,7 @@
 
 ### 有什么数据
 
-覆盖 A股行情、集合竞价、标的目录、公司行动、财务报表与指标、估值、交易日历、指数、板块、公募基金、涨跌停、炸板、个股异动、热榜、龙虎榜和全市场数据文件。
+覆盖 A股行情、集合竞价、标的目录、公司行动、财务报表与指标、估值、交易日历、指数、板块、公募基金、公开期货期权、涨跌停、炸板、个股异动、热榜、龙虎榜和全市场数据文件。
 
 ### 怎么使用
 
@@ -64,6 +68,7 @@
 | 想通过终端批量查询、下载和导出数据 | CLI | 统一远端取数、本地数据库和结构化输出 |
 | 想长期保存历史行情并用 SQL 研究 | marketdb | 在本地自动构建和维护 DuckDB 数据库 |
 | 想获取全市场、长时间范围的大批量数据 | CLI / Market Dumps | 大结果落盘，避免终端和 Agent 上下文过载 |
+| 关注后续免配置使用方式和更多数据能力 | 同花顺AI客户端 | 后续版本计划接入本项目数据源，敬请期待 |
 
 ---
 
@@ -82,8 +87,10 @@
 | 指数与板块 | 查询指数和板块目录、成分股、行情及历史 K 线 | CLI / API / MCP / Python |
 | 同花顺特色数据 | 获取涨跌停池、炸板池、连板、异动、热榜和龙虎榜 | CLI / API / MCP / Python |
 | 公募基金 | 查询资料、公司、经理、财务、披露持仓、业绩、资讯和场内行情 | CLI / API / MCP / Python |
+| 期货与期权 | 查询公开品种、合约、持仓、仓单、基差、日程与行情 | CLI / API / MCP / Python |
 | 全市场数据导出 | 下载全量或增量日 K、公司行动等标准数据文件 | CLI / Market Dumps |
 | 本地 DuckDB | 完成数据初始化、同步、校验、修复、SQL 查询和导出 | CLI / marketdb |
+| 后续客户端数据与分析 | 关注资金流向等更多数据与分析能力的后续接入进展 | [同花顺AI客户端（敬请期待）](https://lumi.10jqka.com.cn/?channel=Hithink-API) |
 
 > 分钟 K、tick、海外行情、宏观数据、新闻公告原文和研报目前不在公开能力范围内。请求未支持的数据时，应明确说明，不使用模拟数据或静态示例冒充真实结果。
 
@@ -243,7 +250,7 @@ curl 'https://fuyao.aicubes.cn/api/a-share/prices/snapshot?thscodes=600519.SH' \
 
 MCP 适合 Claude Desktop、Cursor、Windsurf 和其他支持 MCP 的客户端。
 
-将以下四个托管端点配置到客户端，并使用 `hithink-finance-*` 作为服务名称：
+将以下六个托管端点配置到客户端，并使用 `hithink-finance-*` 作为服务名称：
 
 ```json
 {
@@ -275,17 +282,33 @@ MCP 适合 Claude Desktop、Cursor、Windsurf 和其他支持 MCP 的客户端�
       "headers": {
         "X-api-key": "${HITHINK_FINANCE_API_KEY}"
       }
+    },
+    "hithink-finance-futures": {
+      "type": "http",
+      "url": "https://fuyao.aicubes.cn/mcp/futures",
+      "headers": {
+        "X-api-key": "${HITHINK_FINANCE_API_KEY}"
+      }
+    },
+    "hithink-finance-options": {
+      "type": "http",
+      "url": "https://fuyao.aicubes.cn/mcp/options",
+      "headers": {
+        "X-api-key": "${HITHINK_FINANCE_API_KEY}"
+      }
     }
   }
 }
 ```
 
-四个服务分别覆盖：
+六个服务分别覆盖：
 
 - `hithink-finance-a-share`：A股行情、财务和特色数据；
 - `hithink-finance-a-share-index`：指数、板块及相关行情；
 - `hithink-finance-meta`：标的检索、能力发现等基础信息。
-- `hithink-finance-fund`：基金资料、公司、经理、披露、财务、净值、收益、资讯和场内行情。
+- `hithink-finance-fund`：基金资料、公司、经理、披露、财务、净值、收益、资讯、在线回测、通用指标、QDII 额度和场内行情。
+- `hithink-finance-futures`：公开期货资料、持仓、仓单、基差、日程和行情。
+- `hithink-finance-options`：公开期权品种、合约和行情。
 
 配置位置、安全方式、意图路由和验证步骤见 [MCP 接入说明](docs/mcp.md)。
 
@@ -500,7 +523,7 @@ marketdb query \
 - 新闻和公告原文；
 - 研报原文。
 
-数据权限和可访问 capability 以官网与账号授权为准。
+数据权限和可访问 capability 以官网与账号授权为准。同花顺AI客户端尚未发布接入本项目数据源的版本；资金流向等更多数据与分析能力计划在后续版本接入，可前往[同花顺AI客户端](https://lumi.10jqka.com.cn/?channel=Hithink-API)了解产品，敬请期待。
 
 ---
 

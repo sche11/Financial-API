@@ -70,7 +70,7 @@
 
 详情：[endpoints-index.md](endpoints-index.md)
 
-### 公募基金（28 个）
+### 公募基金（34 个）
 
 | 端点 | 用途 | 典型问题 |
 | --- | --- | --- |
@@ -80,7 +80,7 @@
 | `GET /api/fund/performance/returns` | 固定区间收益 | 「这只基金近一月、近一年和成立以来收益」 |
 | `GET /api/fund/holders/detail` | 持有人结构 | 「机构和个人持有比例是多少」 |
 | `GET /api/fund/market/snapshot` | ETF/LOF 场内快照 | 「510300.SH 当前价格多少」 |
-| `GET /api/fund/market/historical` | ETF 历史日线 | 「510300.SH 最近一年的日线行情」 |
+| `GET /api/fund/market/historical` | ETF 前复权历史日线 | 「510300.SH 最近一年的前复权日线行情」 |
 | `GET /api/fund/companies/detail` | 基金公司详情 | 「这家基金公司的管理规模和负责人是谁」 |
 | `GET /api/fund/portfolio/industry-allocation` | 行业配置 | 「这只基金主要配置哪些行业」 |
 | `GET /api/fund/performance/indicators-historical` | 查询基金净值波动、趋势强弱与估值百分位序列 | 「查看近三年的净值波动、趋势强弱和估值百分位」 |
@@ -102,8 +102,18 @@
 | `GET /api/fund/portfolio/bond-history` | 债券持仓历史 | 「这只基金某报告期持有哪些债券」 |
 | `GET /api/fund/portfolio/bond-report-dates` | 债券持仓报告期 | 「有哪些可用的债券持仓报告期」 |
 | `GET /api/fund/portfolio/asset-allocation` | 大类资产配置 | 「股票、债券和现金各占多少」 |
+| `GET /api/fund/backtest/result` | 基金在线回测 | 「按给定买卖条件执行一次基金回测」 |
+| `GET /api/fund/backtest/indicators` | 基金回测指标目录 | 「回测支持哪些指标和条件」 |
+| `GET /api/fund/indicators/line` | 基金画线式指标 | 「查询基金指标时间序列」 |
+| `GET /api/fund/indicators/table` | 基金表格式指标 | 「按选择器查询基金指标表格」 |
+| `GET /api/fund/quota/summary` | QDII 额度汇总 | 「各 QDII 分类的额度概况」 |
+| `GET /api/fund/quota/list` | QDII 基金额度列表 | 「某 QDII 分类下哪些基金可购及额度」 |
 
 详情：[endpoints-fund.md](endpoints-fund.md)
+
+### 期货与期权（17 个公开能力）
+
+公开能力覆盖期货品种、合约详情、持仓、仓单、基差、交易日程、分时和日 K，以及期权品种、合约详情、分时和日 K。详情：[endpoints-derivatives.md](endpoints-derivatives.md)
 
 ### 特色数据（11 个）
 
@@ -140,7 +150,7 @@
 ### 名称到数据
 
 1. 用 `/api/meta/tickers/search?q=<名称>` 消歧为唯一 `thscode`。
-2. 判断 `asset_type`：`a-share` 走个股端点，`a-share-index` 走指数端点，`fund-*` 走基金端点。
+2. 判断 `asset_type`：`a-share` 走个股端点，`a-share-index` 走指数端点，`fund-*` 走基金端点，`futures/options` 走衍生品端点。
 3. 调用对应行情、财务、估值或特色数据端点。
 
 ### 概念板块到成分股行情
@@ -163,8 +173,8 @@
 
 ## 能力边界
 
-- 覆盖 **A 股**（沪深京）、**A 股指数 / 板块**和公募基金资料、经理、披露、财务、净值、收益与公开资讯；场内行情覆盖 ETF/LOF 快照与 ETF 日线。
-- **不覆盖**：分钟 K、tick、Level-2、港股、美股、基金申赎交易、期货、期权。
+- 覆盖 **A 股**（沪深京）、**A 股指数 / 板块**、公募基金以及公开期货期权资料、持仓、基差、日程和行情。
+- **不覆盖**：分钟 K、tick、Level-2、港股、美股和基金申赎交易。
 - 财务指标端点不返回行业均值、评分、排名或点评。
 - 端点提供数据，不提供回测引擎、alpha 模型或确定性投资建议。
 - 异动分析（`anomaly-analysis-list` / `anomaly-analysis-stock`）仅支持当日快照，不支持历史查询。

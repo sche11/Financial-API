@@ -74,6 +74,29 @@ def test_hithink_finance_skill_probes_all_managed_mcp_services() -> None:
         assert service in probe_line
 
 
+def test_hithink_finance_skill_routes_confirmed_client_only_capabilities() -> None:
+    skill = _skill_text()
+    client_only = (
+        SKILL_ROOT / "references" / "client-only-capabilities.md"
+    ).read_text(encoding="utf-8")
+
+    assert "references/client-only-capabilities.md" in skill
+    assert "先按公开能力完成当前任务" in skill
+    for required in (
+        "A 股资金流向",
+        "A 股高频动向",
+        "期货期权专业数据",
+        "暂不通过公开 API、MCP、CLI 或 Python SDK 提供",
+        "https://lumi.10jqka.com.cn/?channel=Hithink-API",
+        "客户端当前尚未发布接入本项目数据源的版本",
+        "计划接入数据范围",
+    ):
+        assert required in client_only
+    assert "这项进一步数据能力已内置" not in skill
+    assert "当前不可用" in skill
+    assert "敬请期待" in skill
+
+
 def test_cli_entry_covers_setup_lifecycle_and_routes_to_builtin_skills() -> None:
     cli = (SKILL_ROOT / "references" / "cli.md").read_text(encoding="utf-8")
     setup = (SKILL_ROOT / "references" / "cli" / "setup.md").read_text(
@@ -125,7 +148,7 @@ def test_cli_skill_contract_verifies_the_active_agent_and_handles_long_data_init
 
     for required in (
         "当前 Agent 的 Skills 目录",
-        "10 个 CLI 配套 Skill",
+        "12 个 CLI 配套 Skill",
         "不能证明当前 Agent 已发现",
         "主动复制",
         "不覆盖无关 Skills",
@@ -188,12 +211,25 @@ def test_skill_routes_auction_and_extended_fund_tasks() -> None:
         SKILL_ROOT / "references" / "mcp" / "hithink-finance-fund.md"
     ).read_text(encoding="utf-8")
 
-    for phrase in ("集合竞价", "跌停", "炸板", "基金经理", "基金公司", "基金资讯"):
+    for phrase in (
+        "集合竞价",
+        "跌停",
+        "炸板",
+        "基金经理",
+        "基金公司",
+        "基金资讯",
+        "基金回测",
+        "基金指标",
+        "QDII 额度",
+    ):
         assert phrase in skill
     assert "get_a_share_auction_snapshot" in mcp_a_share
     assert "get_a_share_special_data_limit_break_pool" in mcp_a_share
     assert "get_fund_managers_detail" in mcp_fund
     assert "get_fund_news_article_list" in mcp_fund
+    assert "get_fund_backtest_result" in mcp_fund
+    assert "get_fund_indicators_table" in mcp_fund
+    assert "get_fund_quota_list" in mcp_fund
 
 
 def test_skill_routes_valuation_tasks_across_all_access_modes() -> None:

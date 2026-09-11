@@ -17,6 +17,9 @@ import os from 'node:os';
 import { cancelledError, CliError, throwIfCancelled } from '../../contracts/errors.js';
 
 const MIB = 1024 ** 2;
+const DEFAULT_MEMORY_FRACTION = 0.5;
+const MIN_DEFAULT_MEMORY = 256 * MIB;
+const MAX_DEFAULT_MEMORY = 4096 * MIB;
 
 export function duckDbRuntimeOptions(
   env: NodeJS.ProcessEnv = process.env,
@@ -29,7 +32,12 @@ export function duckDbRuntimeOptions(
   const rawMemoryLimit = env.HITHINK_FINANCE_DUCKDB_MEMORY_LIMIT;
   const memoryLimit =
     rawMemoryLimit ??
-    `${Math.floor(Math.min(1024 * MIB, Math.max(256 * MIB, totalMemory * 0.25)) / MIB)}MiB`;
+    `${Math.floor(
+      Math.min(
+        MAX_DEFAULT_MEMORY,
+        Math.max(MIN_DEFAULT_MEMORY, totalMemory * DEFAULT_MEMORY_FRACTION),
+      ) / MIB,
+    )}MiB`;
   if (!Number.isSafeInteger(threads) || threads < 1 || threads > 64) {
     throw new CliError({
       code: 'DUCKDB_CONFIG_INVALID',

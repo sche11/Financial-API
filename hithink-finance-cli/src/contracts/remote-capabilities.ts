@@ -3,7 +3,7 @@ import { z, type ZodType } from 'zod';
 export interface RemoteOptionDescriptor {
   flags: string;
   description: string;
-  type: 'string' | 'integer' | 'boolean';
+  type: 'string' | 'integer' | 'number' | 'boolean';
   required?: boolean;
   choices?: readonly string[];
   defaultValue?: string | number | boolean;
@@ -36,6 +36,8 @@ const assetTypes = [
   'fund-etf',
   'fund-lof',
   'fund-reits',
+  'futures',
+  'options',
 ] as const;
 const assetTypeCsv = z.string().superRefine((value, context) => {
   const tokens = value.split(',');
@@ -49,9 +51,120 @@ const assetTypeCsv = z.string().superRefine((value, context) => {
   }
 });
 const fundCode = z.string().regex(/^\d{6}\.(OF|SH|SZ)$/iu);
+const securityCode = z.string().regex(/^\d{6}\.(OF|SH|SZ|BJ)$/iu);
+const derivativeCode = z.string().trim().min(1);
+const derivativeVariety = z.string().regex(/^[A-Z][A-Z0-9]*$/u);
+const derivativeList = z.string().superRefine((value, context) => {
+  const tokens = value.split(',').map((token) => token.trim());
+  if (tokens.length < 1 || tokens.length > 5 || tokens.some((token) => token.length === 0))
+    context.addIssue({ code: 'custom', message: 'list must contain 1 to 5 non-empty values' });
+});
 const record = z.record(z.string(), z.unknown());
 const itemOutput = z.object({ item: z.array(record) }).passthrough();
 const objectOutput = z.object({}).passthrough();
+const arrayOutput = z.array(z.unknown());
+
+function jsonString<T>(schema: z.ZodType<T>, field: string): z.ZodString {
+  return z.string().superRefine((value, context) => {
+    let parsed: unknown;
+    try {
+      parsed = JSON.parse(value) as unknown;
+    } catch {
+      context.addIssue({ code: 'custom', message: `${field} must be valid JSON` });
+      return;
+    }
+    if (!schema.safeParse(parsed).success) {
+      context.addIssue({ code: 'custom', message: `${field} has an invalid structure` });
+    }
+  });
+}
+
+const conditionJson = jsonString(z.union([record, z.array(z.unknown())]), 'condition');
+const lineIndexesJson = jsonString(
+  z.array(
+    z
+      .object({
+        thscodes: z.array(securityCode),
+        index_info: z.array(
+          z
+            .object({ index_id: z.string().min(1), attribute: z.unknown().optional() })
+            .passthrough(),
+        ),
+      })
+      .passthrough(),
+  ),
+  'indexes',
+);
+const timeRangeJson = jsonString(
+  z
+    .object({
+      time_type: z.string().min(1),
+      start: z.number().int().safe().optional(),
+      end: z.number().int().safe().optional(),
+      offset: z.number().int().safe().optional(),
+    })
+    .passthrough()
+    .refine(
+      (value) => value.start === undefined || value.end === undefined || value.end >= value.start,
+      {
+        message: 'end must be >= start',
+      },
+    ),
+  'time_range',
+);
+const tableSelectorsJson = jsonString(
+  z
+    .object({
+      include: z.array(z.object({ type: z.string().min(1) }).passthrough()).optional(),
+    })
+    .passthrough()
+    .superRefine((value, context) => {
+      for (const selector of value.include ?? []) {
+        const candidate = selector as Record<string, unknown>;
+        const securities = selector.type === 'stock_code' || selector.type === 'fund_code';
+        const values = securities ? candidate.thscodes : candidate.values;
+        if (
+          !Array.isArray(values) ||
+          values.some(
+            (item) =>
+              typeof item !== 'string' || (securities && !securityCode.safeParse(item).success),
+          ) ||
+          (securities && candidate.values !== undefined)
+        ) {
+          context.addIssue({ code: 'custom', message: 'invalid code selector' });
+        }
+      }
+    }),
+  'code_selectors',
+);
+const tableIndexesJson = jsonString(
+  z.array(
+    z
+      .object({
+        index_id: z.string().min(1),
+        timestamp: z.number().int().safe().optional(),
+        attribute: z.unknown().optional(),
+      })
+      .passthrough(),
+  ),
+  'indexes',
+);
+const pageInfoJson = jsonString(
+  z
+    .object({
+      page_begin: z.number().int().safe().optional(),
+      page_size: z.number().int().safe().optional(),
+      code_begin: z.number().int().safe().optional(),
+      code_page_size: z.number().int().safe().optional(),
+    })
+    .passthrough(),
+  'page_info',
+);
+const sortJson = jsonString(
+  z.array(z.object({ idx: z.number().int().safe(), type: z.string().min(1) }).passthrough()),
+  'sort',
+);
+const quotaTabsJson = jsonString(z.array(z.string().trim().min(1)), 'tab');
 
 const valuationCodes = z
   .string()
@@ -438,6 +551,73 @@ function specialPool(
     window: 'none',
   };
 }
+
+function derivativeCapability(
+  domain: 'futures' | 'options',
+  command: string,
+  description: string,
+  endpoint: string,
+  inputSchema: ZodType<Record<string, unknown>> = z.object({}).strict(),
+  options: readonly RemoteOptionDescriptor[] = [],
+  outputSchema: ZodType<unknown> = itemOutput,
+  window: RemoteCapabilityDescriptor['window'] = 'none',
+): RemoteCapabilityDescriptor {
+  return {
+    id: `${domain}.${command}`,
+    command: [domain, command],
+    description,
+    endpoint,
+    method: 'GET',
+    inputSchema,
+    outputSchema,
+    options,
+    paging: 'none',
+    window,
+  };
+}
+
+const thscodeOption: RemoteOptionDescriptor = {
+  flags: '--thscode <code>',
+  description: 'full futures or options thscode',
+  type: 'string',
+  required: true,
+};
+const sessionOption: RemoteOptionDescriptor = {
+  flags: '--session <session>',
+  description: 'trading session',
+  type: 'string',
+  choices: ['pre_market', 'intraday', 'post_market'],
+  defaultValue: 'intraday',
+};
+const derivativeDailyInput = z
+  .object({
+    thscode: derivativeCode,
+    start: z.number().int().positive().optional(),
+    end: z.number().int().positive().optional(),
+  })
+  .strict()
+  .superRefine((value, context) => {
+    if ((value.start === undefined) !== (value.end === undefined))
+      context.addIssue({ code: 'custom', message: 'start and end must be provided together' });
+    if (value.start !== undefined && value.end !== undefined && value.start > value.end)
+      context.addIssue({ code: 'custom', message: 'start must be <= end' });
+  });
+const derivativeDailyOptions: readonly RemoteOptionDescriptor[] = [
+  thscodeOption,
+  {
+    flags: '--start <milliseconds>',
+    description: 'range start in Unix milliseconds',
+    type: 'integer',
+  },
+  { flags: '--end <milliseconds>', description: 'range end in Unix milliseconds', type: 'integer' },
+];
+const derivativeIntradayInput = z
+  .object({
+    thscode: derivativeCode,
+    session: z.enum(['pre_market', 'intraday', 'post_market']).default('intraday'),
+  })
+  .strict();
+const derivativeIntradayOptions: readonly RemoteOptionDescriptor[] = [thscodeOption, sessionOption];
 
 export const remoteCapabilities: readonly RemoteCapabilityDescriptor[] = [
   {
@@ -922,7 +1102,7 @@ export const remoteCapabilities: readonly RemoteCapabilityDescriptor[] = [
   {
     id: 'fund.history',
     command: ['fund', 'history'],
-    description: 'Query daily ETF price history',
+    description: 'Query forward-adjusted daily ETF price history',
     endpoint: '/api/fund/market/historical',
     method: 'GET',
     inputSchema: fundHistoryInput,
@@ -1148,7 +1328,7 @@ export const remoteCapabilities: readonly RemoteCapabilityDescriptor[] = [
   },
   fundPortfolioHistory(
     'stock-history',
-    'Query historical fund stock holdings',
+    'Query historical fund stock holdings; rank is populated only for the top 10',
     '/api/fund/portfolio/stock-history',
   ),
   fundReportDates(
@@ -1158,7 +1338,7 @@ export const remoteCapabilities: readonly RemoteCapabilityDescriptor[] = [
   ),
   fundPortfolioHistory(
     'bond-history',
-    'Query historical fund bond holdings',
+    'Query historical fund bond holdings; rank is populated only for the top 10',
     '/api/fund/portfolio/bond-history',
   ),
   fundReportDates(
@@ -1170,6 +1350,438 @@ export const remoteCapabilities: readonly RemoteCapabilityDescriptor[] = [
     'asset-allocation',
     'Query fund asset allocation',
     '/api/fund/portfolio/asset-allocation',
+  ),
+  {
+    id: 'fund.backtest-result',
+    command: ['fund', 'backtest-result'],
+    description: 'Run a stateless online fund backtest',
+    endpoint: '/api/fund/backtest/result',
+    method: 'GET',
+    inputSchema: z
+      .object({
+        thscode: fundCode,
+        buyConditions: conditionJson,
+        sellConditions: conditionJson,
+        buyFrequencyType: z.string().min(1),
+        maxBuyTimes: z.number().finite(),
+        perBuyAmount: z.number().finite(),
+      })
+      .strict(),
+    outputSchema: objectOutput,
+    options: [
+      {
+        flags: '--thscode <code>',
+        description: 'single fund thscode',
+        type: 'string',
+        required: true,
+      },
+      {
+        flags: '--buy-conditions <json>',
+        description: 'buy condition JSON object or array',
+        type: 'string',
+        required: true,
+        queryName: 'buy_conditions',
+      },
+      {
+        flags: '--sell-conditions <json>',
+        description: 'sell condition JSON object or array',
+        type: 'string',
+        required: true,
+        queryName: 'sell_conditions',
+      },
+      {
+        flags: '--buy-frequency-type <type>',
+        description: 'upstream buy frequency type',
+        type: 'string',
+        required: true,
+        queryName: 'buy_frequency_type',
+      },
+      {
+        flags: '--max-buy-times <number>',
+        description: 'maximum buy count',
+        type: 'number',
+        required: true,
+        queryName: 'max_buy_times',
+      },
+      {
+        flags: '--per-buy-amount <number>',
+        description: 'amount for each buy',
+        type: 'number',
+        required: true,
+        queryName: 'per_buy_amount',
+      },
+    ],
+    paging: 'none',
+    window: 'none',
+  },
+  {
+    id: 'fund.backtest-indicators',
+    command: ['fund', 'backtest-indicators'],
+    description: 'List indicators supported by the fund backtest service',
+    endpoint: '/api/fund/backtest/indicators',
+    method: 'GET',
+    inputSchema: z.object({}).strict(),
+    outputSchema: arrayOutput,
+    options: [],
+    paging: 'none',
+    window: 'none',
+  },
+  {
+    id: 'fund.indicators-line',
+    command: ['fund', 'indicators-line'],
+    description: 'Query line-oriented fund indicators',
+    endpoint: '/api/fund/indicators/line',
+    method: 'GET',
+    inputSchema: z.object({ indexes: lineIndexesJson, timeRange: timeRangeJson }).strict(),
+    outputSchema: objectOutput,
+    options: [
+      {
+        flags: '--indexes <json>',
+        description: 'indicator group JSON array with complete thscodes',
+        type: 'string',
+        required: true,
+      },
+      {
+        flags: '--time-range <json>',
+        description: 'time range JSON object using Unix milliseconds',
+        type: 'string',
+        required: true,
+        queryName: 'time_range',
+      },
+    ],
+    paging: 'none',
+    window: 'none',
+  },
+  {
+    id: 'fund.indicators-table',
+    command: ['fund', 'indicators-table'],
+    description: 'Query table-oriented fund indicators',
+    endpoint: '/api/fund/indicators/table',
+    method: 'GET',
+    inputSchema: z
+      .object({
+        codeSelectors: tableSelectorsJson.optional(),
+        indexes: tableIndexesJson.optional(),
+        pageInfo: pageInfoJson.optional(),
+        sort: sortJson.optional(),
+      })
+      .strict(),
+    outputSchema: objectOutput,
+    options: [
+      {
+        flags: '--code-selectors <json>',
+        description: 'code selector JSON object',
+        type: 'string',
+        queryName: 'code_selectors',
+      },
+      { flags: '--indexes <json>', description: 'indicator JSON array', type: 'string' },
+      {
+        flags: '--page-info <json>',
+        description: 'zero-based page JSON object',
+        type: 'string',
+        queryName: 'page_info',
+      },
+      { flags: '--sort <json>', description: 'sort JSON array', type: 'string' },
+    ],
+    paging: 'none',
+    window: 'none',
+  },
+  {
+    id: 'fund.quota-summary',
+    command: ['fund', 'quota-summary'],
+    description: 'Query QDII quota summaries by category',
+    endpoint: '/api/fund/quota/summary',
+    method: 'GET',
+    inputSchema: z.object({ tab: quotaTabsJson }).strict(),
+    outputSchema: arrayOutput,
+    options: [
+      {
+        flags: '--tab <json>',
+        description: 'category name JSON array',
+        type: 'string',
+        required: true,
+      },
+    ],
+    paging: 'none',
+    window: 'none',
+  },
+  {
+    id: 'fund.quota-list',
+    command: ['fund', 'quota-list'],
+    description: 'Query QDII fund quotas by category',
+    endpoint: '/api/fund/quota/list',
+    method: 'GET',
+    inputSchema: z.object({ tab: quotaTabsJson, buy: z.boolean().optional() }).strict(),
+    outputSchema: arrayOutput,
+    options: [
+      {
+        flags: '--tab <json>',
+        description: 'category name JSON array',
+        type: 'string',
+        required: true,
+      },
+      {
+        flags: '--buy <boolean>',
+        description: 'optional true/false purchasable filter',
+        type: 'boolean',
+      },
+    ],
+    paging: 'none',
+    window: 'none',
+  },
+  derivativeCapability(
+    'futures',
+    'varieties',
+    'List public futures varieties',
+    '/api/futures/varieties/list',
+  ),
+  derivativeCapability(
+    'futures',
+    'contract-detail',
+    'Query futures contract details',
+    '/api/futures/contracts/detail',
+    z.object({ thscode: derivativeCode }).strict(),
+    [thscodeOption],
+    objectOutput,
+  ),
+  derivativeCapability(
+    'futures',
+    'variety-positions',
+    'Query daily futures variety positions',
+    '/api/futures/positions/variety-daily',
+    z.object({ date: isoDate }).strict(),
+    [
+      {
+        flags: '--date <date>',
+        description: 'trading date (YYYY-MM-DD)',
+        type: 'string',
+        required: true,
+      },
+    ],
+  ),
+  derivativeCapability(
+    'futures',
+    'company-variety-positions',
+    'Query daily company positions by futures varieties',
+    '/api/futures/positions/company-variety-daily',
+    z.object({ date: isoDate, varieties: derivativeList }).strict(),
+    [
+      {
+        flags: '--date <date>',
+        description: 'trading date (YYYY-MM-DD)',
+        type: 'string',
+        required: true,
+      },
+      {
+        flags: '--varieties <codes>',
+        description: '1 to 5 comma-separated variety codes',
+        type: 'string',
+        required: true,
+      },
+    ],
+  ),
+  derivativeCapability(
+    'futures',
+    'contract-positions',
+    'Query daily futures contract positions',
+    '/api/futures/positions/contract-daily',
+    z.object({ thscode: derivativeCode, variety: derivativeVariety, date: isoDate }).strict(),
+    [
+      thscodeOption,
+      {
+        flags: '--variety <code>',
+        description: 'uppercase futures variety code',
+        type: 'string',
+        required: true,
+      },
+      {
+        flags: '--date <date>',
+        description: 'trading date (YYYY-MM-DD)',
+        type: 'string',
+        required: true,
+      },
+    ],
+    objectOutput,
+  ),
+  derivativeCapability(
+    'futures',
+    'contract-position-history',
+    'Query up to one year of futures contract positions',
+    '/api/futures/positions/contract-historical',
+    z
+      .object({
+        thscode: derivativeCode,
+        variety: derivativeVariety,
+        company: z.string().trim().min(1),
+        startDate: isoDate,
+      })
+      .strict(),
+    [
+      thscodeOption,
+      {
+        flags: '--variety <code>',
+        description: 'uppercase futures variety code',
+        type: 'string',
+        required: true,
+      },
+      {
+        flags: '--company <name>',
+        description: 'futures company name',
+        type: 'string',
+        required: true,
+      },
+      {
+        flags: '--start-date <date>',
+        description: 'start date within the last year',
+        type: 'string',
+        required: true,
+        queryName: 'start_date',
+      },
+    ],
+    objectOutput,
+    'one-year',
+  ),
+  derivativeCapability(
+    'futures',
+    'position-companies',
+    'List futures position companies',
+    '/api/futures/positions/company-list',
+  ),
+  derivativeCapability(
+    'futures',
+    'warehouse-receipts',
+    'Query historical futures warehouse receipts',
+    '/api/futures/warehouse-receipts/historical',
+    z
+      .object({ thscode: derivativeCode, startDate: isoDate, endDate: isoDate })
+      .strict()
+      .refine((value) => value.startDate <= value.endDate, {
+        message: 'start-date must be <= end-date',
+      }),
+    [
+      thscodeOption,
+      {
+        flags: '--start-date <date>',
+        description: 'range start (YYYY-MM-DD)',
+        type: 'string',
+        required: true,
+        queryName: 'start_date',
+      },
+      {
+        flags: '--end-date <date>',
+        description: 'range end (YYYY-MM-DD)',
+        type: 'string',
+        required: true,
+        queryName: 'end_date',
+      },
+    ],
+  ),
+  derivativeCapability(
+    'futures',
+    'latest-basis',
+    'Query latest main-continuous futures basis',
+    '/api/futures/basis/main-continuous-latest',
+  ),
+  derivativeCapability(
+    'futures',
+    'basis-history',
+    'Query historical futures basis',
+    '/api/futures/basis/historical',
+    z
+      .object({ thscode: derivativeCode, spotIndicatorId: z.string().trim().min(1).optional() })
+      .strict(),
+    [
+      thscodeOption,
+      {
+        flags: '--spot-indicator-id <id>',
+        description: 'optional spot indicator identifier',
+        type: 'string',
+        queryName: 'spot_indicator_id',
+      },
+    ],
+  ),
+  derivativeCapability(
+    'futures',
+    'trading-schedule',
+    'Query futures trading schedule',
+    '/api/futures/calendar/trading-schedule',
+    z
+      .object({ thscode: derivativeCode, startDate: isoDate, endDate: isoDate })
+      .strict()
+      .refine((value) => value.startDate <= value.endDate, {
+        message: 'start-date must be <= end-date',
+      }),
+    [
+      thscodeOption,
+      {
+        flags: '--start-date <date>',
+        description: 'range start (YYYY-MM-DD)',
+        type: 'string',
+        required: true,
+        queryName: 'start_date',
+      },
+      {
+        flags: '--end-date <date>',
+        description: 'range end (YYYY-MM-DD)',
+        type: 'string',
+        required: true,
+        queryName: 'end_date',
+      },
+    ],
+    objectOutput,
+  ),
+  derivativeCapability(
+    'futures',
+    'intraday',
+    'Query current futures session intraday prices',
+    '/api/futures/prices/intraday',
+    derivativeIntradayInput,
+    derivativeIntradayOptions,
+    objectOutput,
+    'today-only',
+  ),
+  derivativeCapability(
+    'futures',
+    'daily',
+    'Query fixed 1d futures prices',
+    '/api/futures/prices/daily',
+    derivativeDailyInput,
+    derivativeDailyOptions,
+    objectOutput,
+  ),
+  derivativeCapability(
+    'options',
+    'varieties',
+    'List public options varieties',
+    '/api/options/varieties/list',
+  ),
+  derivativeCapability(
+    'options',
+    'contract-detail',
+    'Query options contract details',
+    '/api/options/contracts/detail',
+    z.object({ thscode: derivativeCode }).strict(),
+    [thscodeOption],
+    objectOutput,
+  ),
+  derivativeCapability(
+    'options',
+    'intraday',
+    'Query current options session intraday prices',
+    '/api/options/prices/intraday',
+    derivativeIntradayInput,
+    derivativeIntradayOptions,
+    objectOutput,
+    'today-only',
+  ),
+  derivativeCapability(
+    'options',
+    'daily',
+    'Query fixed 1d options prices',
+    '/api/options/prices/daily',
+    derivativeDailyInput,
+    derivativeDailyOptions,
+    objectOutput,
   ),
   {
     id: 'special.limit-up-pool',

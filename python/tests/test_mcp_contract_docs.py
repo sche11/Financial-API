@@ -14,7 +14,7 @@ def read(relative_path: str) -> str:
     return (REPO_ROOT / relative_path).read_text(encoding="utf-8")
 
 
-def test_mcp_contract_preserves_four_service_intent_routing() -> None:
+def test_mcp_contract_preserves_service_intent_routing() -> None:
     entry = read("docs/mcp.md")
     capability_map = read("docs/mcp/capability-map.md")
 
@@ -23,10 +23,12 @@ def test_mcp_contract_preserves_four_service_intent_routing() -> None:
         "hithink-finance-a-share-index",
         "hithink-finance-meta",
         "hithink-finance-fund",
+        "hithink-finance-futures",
+        "hithink-finance-options",
     ):
         assert service in entry
         assert service in capability_map
-    assert "55" in capability_map
+    assert "78" in capability_map
     for behavior in ("意图", "按需", "消歧", "code=2003", "tools/list"):
         assert behavior in entry + capability_map
 
@@ -34,7 +36,7 @@ def test_mcp_contract_preserves_four_service_intent_routing() -> None:
 def test_mcp_examples_use_the_canonical_api_key_environment_variable() -> None:
     entry = read("docs/mcp.md")
 
-    assert entry.count("${HITHINK_FINANCE_API_KEY}") == 4
+    assert entry.count("${HITHINK_FINANCE_API_KEY}") == 6
     assert "${API_KEY}" not in entry
 
 
@@ -43,7 +45,9 @@ def test_mcp_service_snapshots_preserve_all_tools_and_agent_guidance() -> None:
         "hithink-finance-a-share.md": 21,
         "hithink-finance-a-share-index.md": 4,
         "hithink-finance-meta.md": 2,
-        "hithink-finance-fund.md": 28,
+        "hithink-finance-fund.md": 34,
+        "hithink-finance-futures.md": 13,
+        "hithink-finance-options.md": 4,
     }
 
     for filename, expected_count in expected_counts.items():
@@ -52,6 +56,36 @@ def test_mcp_service_snapshots_preserve_all_tools_and_agent_guidance() -> None:
         assert len(tools) == expected_count, filename
         assert "适用场景" in text or "用途" in text
         assert "参数" in text
+
+
+def test_derivative_mcp_services_match_the_public_rest_surface() -> None:
+    futures = read("docs/mcp/hithink-finance-futures.md")
+    options = read("docs/mcp/hithink-finance-options.md")
+    for required in (
+        "get_futures_positions_contract_historical",
+        "get_futures_warehouse_receipts_historical",
+        "get_futures_basis_historical",
+        "get_futures_prices_daily",
+        "start_date",
+        "spot_indicator_id",
+        "pre_market/intraday/post_market",
+    ):
+        assert required in futures
+    for required in (
+        "get_options_varieties_list",
+        "get_options_contracts_detail",
+        "get_options_prices_intraday",
+        "get_options_prices_daily",
+    ):
+        assert required in options
+    for required in (
+        "price_spread_contract",
+        "spot_publish_date",
+        "YYYY-MM-DD",
+        "必需数组容器",
+        "5003",
+    ):
+        assert required in futures
 
 
 def test_mcp_valuation_snapshot_matches_the_rest_contract() -> None:
@@ -97,8 +131,16 @@ def test_mcp_fund_snapshot_lists_all_extended_tools_and_boundaries() -> None:
     fund = read("docs/mcp/hithink-finance-fund.md")
     assert "fund_type" not in fund
     assert "使用带市场后缀的单个 `thscode` 唯一定位基金" in fund
+    assert "查询 ETF 前复权历史日线" in fund
+    assert fund.count("`rank` 仅前十为 `1`～`10`，其余为 `null`") == 2
 
     for required in (
+        "get_fund_backtest_indicators",
+        "get_fund_backtest_result",
+        "get_fund_indicators_line",
+        "get_fund_indicators_table",
+        "get_fund_quota_list",
+        "get_fund_quota_summary",
         "get_fund_companies_detail",
         "get_fund_performance_indicators_historical",
         "get_fund_managers_detail",
@@ -109,6 +151,9 @@ def test_mcp_fund_snapshot_lists_all_extended_tools_and_boundaries() -> None:
         "company_id",
         "active/upcoming",
         "最多 5 年",
+        "buy_conditions",
+        "part_order_thscodes",
+        "Unix 毫秒",
     ):
         assert required in fund
     for required in (

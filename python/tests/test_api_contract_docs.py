@@ -53,6 +53,12 @@ EXPECTED_ENDPOINTS = {
         "GET /api/a-share/special-data/dragon-tiger-list",
     },
     "endpoints-fund.md": {
+        "GET /api/fund/backtest/indicators",
+        "GET /api/fund/backtest/result",
+        "GET /api/fund/indicators/line",
+        "GET /api/fund/indicators/table",
+        "GET /api/fund/quota/list",
+        "GET /api/fund/quota/summary",
         "GET /api/fund/profile/detail",
         "GET /api/fund/portfolio/holdings",
         "GET /api/fund/performance/nav",
@@ -94,8 +100,8 @@ def read(filename: str) -> str:
     return (API_ROOT / filename).read_text(encoding="utf-8")
 
 
-def test_all_59_endpoints_are_documented_once() -> None:
-    assert sum(map(len, EXPECTED_ENDPOINTS.values())) == 59
+def test_all_65_endpoints_are_documented_once() -> None:
+    assert sum(map(len, EXPECTED_ENDPOINTS.values())) == 65
     for filename in EXPECTED_ENDPOINTS:
         assert (API_ROOT / filename).is_file(), filename
     combined = "\n".join(read(filename) for filename in EXPECTED_ENDPOINTS)
@@ -236,6 +242,15 @@ def test_fund_and_meta_contracts_preserve_published_boundaries() -> None:
     assert "| `merge_scope` | string | 否 |" in holders
     assert "`all`（默认" in holders
     assert "`report_date_ms`" in holders
+    assert "固定返回前复权日线" in fund
+    fund_history_row = next(
+        line
+        for line in read("capability-map.md").splitlines()
+        if "GET /api/fund/market/historical" in line
+    )
+    assert "ETF 前复权历史日线" in fund_history_row
+    assert fund.count("只有前十大持仓返回 `1`～`10`，其余持仓返回 `null`") == 2
+    assert fund.count("`rank=null` 表示该记录不在前十") == 2
     for asset_type in (
         "a-share",
         "a-share-index",
@@ -244,6 +259,8 @@ def test_fund_and_meta_contracts_preserve_published_boundaries() -> None:
         "fund-etf",
         "fund-lof",
         "fund-reits",
+        "futures",
+        "options",
     ):
         assert asset_type in meta
     assert "逗号" in meta and "多个" in meta
@@ -319,6 +336,34 @@ def test_fund_news_and_historical_indicators_use_the_runtime_payload_shape() -> 
     assert "`has_more=false`" in news
 
 
+def test_fund_functional_contract_preserves_nested_inputs_and_dynamic_outputs() -> None:
+    fund = read("endpoints-fund.md")
+
+    for required in (
+        "get_fund_backtest_indicators",
+        "get_fund_backtest_result",
+        "get_fund_indicators_line",
+        "get_fund_indicators_table",
+        "get_fund_quota_list",
+        "get_fund_quota_summary",
+        "buy_conditions",
+        "sell_conditions",
+        "buy_frequency_type",
+        "max_buy_times",
+        "per_buy_amount",
+        "code_selectors",
+        "time_range",
+        "page_info",
+        "part_order_thscodes",
+        "curve_points",
+        "Unix 毫秒",
+        "no-store",
+    ):
+        assert required in fund
+    assert "`quota` 为 `null` 表示无限额" in fund
+    assert "局部 `null`" in fund
+
+
 def test_valuation_snapshot_contract_preserves_fixed_metrics_and_batch_boundaries() -> None:
     path = API_ROOT / "endpoints-valuations.md"
     assert path.is_file()
@@ -349,3 +394,64 @@ def test_error_envelope_always_keeps_null_data() -> None:
     entry = read("README.md")
     assert "`data` 字段始终存在" in entry
     assert "业务错误时为 `null`" in entry
+
+
+def test_derivatives_contract_exposes_only_the_17_public_operations() -> None:
+    derivatives = read("endpoints-derivatives.md")
+    public_operations = {
+        "get_futures_varieties_list",
+        "get_futures_contracts_detail",
+        "get_futures_positions_variety_daily",
+        "get_futures_positions_company_variety_daily",
+        "get_futures_positions_contract_daily",
+        "get_futures_positions_contract_historical",
+        "get_futures_positions_company_list",
+        "get_futures_warehouse_receipts_historical",
+        "get_futures_basis_main_continuous_latest",
+        "get_futures_basis_historical",
+        "get_futures_calendar_trading_schedule",
+        "get_futures_prices_intraday",
+        "get_futures_prices_daily",
+        "get_options_varieties_list",
+        "get_options_contracts_detail",
+        "get_options_prices_intraday",
+        "get_options_prices_daily",
+    }
+    for operation in public_operations:
+        assert operation in derivatives
+    for client_only in (
+        "get_futures_variety_plates_list",
+        "get_futures_contracts_main_continuous_list",
+        "get_futures_contracts_main_list",
+        "get_futures_contracts_secondary_main_list",
+        "get_futures_contracts_commodity_index_list",
+        "get_futures_fundamentals_indicators_historical",
+        "get_futures_calendar_session_timeline",
+        "get_options_calendar_session_timeline",
+    ):
+        assert client_only not in derivatives
+    for token in (
+        "start_date",
+        "spot_indicator_id",
+        "pre_market",
+        "position_item",
+        "average_item",
+        "nullable",
+        "5003",
+    ):
+        assert token in derivatives
+    assert "合约日持仓包装固定为 `timestamp,date,position_item[],average_item[]`" in derivatives
+    assert (
+        "合约历史持仓包装固定为 `timestamp,start_date,end_date,position_item[],average_item[]`"
+        in derivatives
+    )
+    for required in (
+        "`price_spread_contract` 为可空字符串",
+        "逗号分隔合约文本",
+        "`spot_publish_date`",
+        "非空时统一为 `YYYY-MM-DD`",
+        "必需数组容器缺失、为 `null` 或类型错误",
+        "返回 `5003`",
+        "非法上游日期",
+    ):
+        assert required in derivatives

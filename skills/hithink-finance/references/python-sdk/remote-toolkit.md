@@ -18,6 +18,11 @@ python python/toolkit/fuyao/scripts/fuyao.py auction-snapshot --thscodes 600519.
 python python/toolkit/fuyao/scripts/fuyao.py limit-break-pool --size 50
 python python/toolkit/fuyao/scripts/fuyao.py fund-historical --thscode 510300.SH --start-ms 1704038400000 --end-ms 1735660799000
 python python/toolkit/fuyao/scripts/fuyao.py fund-manager-detail --manager-id <manager-id>
+python python/toolkit/fuyao/scripts/fuyao.py fund-backtest-indicators
+python python/toolkit/fuyao/scripts/fuyao.py fund-quota-list --tab '["nazhi100"]' --buy true
+python python/toolkit/fuyao/scripts/fuyao.py futures-contract-detail --thscode RB2610.SHF
+python python/toolkit/fuyao/scripts/fuyao.py futures-intraday --thscode RB2610.SHF --session intraday
+python python/toolkit/fuyao/scripts/fuyao.py options-daily --thscode MO2610-C-6500.CFX
 ```
 
 Python 函数调用：
@@ -33,6 +38,11 @@ from fuyao_client import (
     a_share_auction_snapshot,
     fund_managers_detail,
     fund_market_historical,
+    fund_backtest_indicators,
+    fund_quota_list,
+    futures_contract_detail,
+    futures_intraday,
+    options_daily,
     prices_snapshot,
     tickers_search,
 )
@@ -43,6 +53,11 @@ valuations = a_share_valuations_snapshot(["600519.SH", "000001.SZ"])
 auction = a_share_auction_snapshot(["600519.SH"], stage="final")
 fund_bars = fund_market_historical("510300.SH", 1704038400000, 1735660799000)
 manager = fund_managers_detail("<manager-id>")
+backtest_indicators = fund_backtest_indicators()
+quota = fund_quota_list('["nazhi100"]', buy=True)
+futures_contract = futures_contract_detail("RB2610.SHF")
+futures_bars = futures_intraday("RB2610.SHF", session="intraday")
+options_bars = options_daily("MO2610-C-6500.CFX")
 ```
 
 函数签名与脚本 `--help` 是 Python 适配层的运行契约；上游请求与响应字段按本 Skill 的 [REST API 入口](../api.md) 继续路由。真实调用先检查 `code=0`，大结果必须重定向或由程序写入文件。

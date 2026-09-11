@@ -1,6 +1,6 @@
 # 远端数据 Python toolkit
 
-本目录提供同花顺金融数据服务的 Python 适配层，用于从 Python、Shell、CI 或 Notebook 获取最新行情、集合竞价、财报、估值、指数、基金、标的目录和特色数据。历史全市场研究与本地 SQL 请使用 [`../marketdb/`](../marketdb/README.md)。
+本目录提供同花顺金融数据服务的 Python 适配层，用于从 Python、Shell、CI 或 Notebook 获取最新行情、集合竞价、财报、估值、指数、基金、期货、期权、标的目录和特色数据。历史全市场研究与本地 SQL 请使用 [`../marketdb/`](../marketdb/README.md)。
 
 这里维护的是 **Python 函数和脚本运行方式**。上游 REST 端点参数、响应字段和错误码统一在 [`docs/api/`](../../../docs/api/README.md) 维护，本目录不保存 `llms.txt`、`llms-full.txt` 或重复契约。
 
@@ -25,6 +25,7 @@ python/toolkit/fuyao/
 - 股票/指数名称、ticker、`thscode` 检索与消歧
 - 指数/板块目录、成分股和行情
 - 基金档案、公司、经理、持仓、财务、净值、收益、公开资讯和场内基金行情
+- 公开期货期权品种、合约、持仓、仓单、基差、日程和行情
 - 涨停、跌停、炸板、连板、当日异动、热榜和龙虎榜
 - 全市场 Market Dumps 的远端签出流程
 
@@ -112,6 +113,7 @@ python python/toolkit/fuyao/scripts/fuyao.py dragon-tiger-list --board-type all
 | 日历 | `calendar-trading-days` |
 | 指数 | `index-catalog`, `index-constituents`, `index-snapshot`, `index-historical` |
 | 基金 | `fund-*`：资料、公司、经理、持仓、财务、净值、收益、资讯、发行状态和场内行情 |
+| 期货期权 | `futures-*`、`options-*`：公开资料、持仓、基差、日程和行情 |
 | 特色数据 | `limit-up-pool`, `limit-down-pool`, `limit-break-pool`, `limit-up-ladder`, `anomaly-analysis-*`, 热榜和龙虎榜命令 |
 
 具体参数始终以当前 `--help` 和函数签名为准；上游字段解释见 [REST API 契约](../../../docs/api/README.md)。
@@ -119,6 +121,8 @@ python python/toolkit/fuyao/scripts/fuyao.py dragon-tiger-list --board-type all
 响应分页和时间语义也以 REST 契约为准：基金资讯按 `has_more` 结束游标分页；集合竞价 `timestamp` 是响应组装时间，短期基准省略日期时使用上海时区当日。
 
 ## Python 函数
+
+基金远端函数还包括 `fund_backtest_result`、`fund_backtest_indicators`、`fund_indicators_line`、`fund_indicators_table`、`fund_quota_summary` 和 `fund_quota_list`。复杂对象与数组使用 JSON 字符串，并在 HTTP 前校验结构；完整字段契约见 [`docs/api/endpoints-fund.md`](../../../docs/api/endpoints-fund.md)。
 
 `fuyao_client.py` 是轻量适配模块。在仓库内可显式加入脚本目录：
 

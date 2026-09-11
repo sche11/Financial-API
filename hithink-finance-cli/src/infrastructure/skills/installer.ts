@@ -11,6 +11,8 @@
  * - hithink-finance-special-data：特殊数据（龙虎榜、涨停板等）
  * - hithink-finance-financials：财务报表分析
  * - hithink-finance-index：指数数据
+ * - hithink-finance-futures：期货数据
+ * - hithink-finance-options：期权数据
  * - hithink-finance-data：通用数据查询
  * - hithink-finance-research：研报查询
  *
@@ -361,6 +363,8 @@ const skillNames = [
   'hithink-finance-financials',
   'hithink-finance-index',
   'hithink-finance-fund',
+  'hithink-finance-futures',
+  'hithink-finance-options',
   'hithink-finance-valuation',
   'hithink-finance-data',
   'hithink-finance-research',

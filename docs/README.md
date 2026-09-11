@@ -13,7 +13,10 @@
 | 安装并使用 Node.js CLI | [CLI README](../hithink-finance-cli/README.md) |
 | 使用 Python toolkit、SDK 和本地 marketdb | [Python README](../python/README.md) |
 | 安装跨 API/MCP/CLI/Python 的 Agent Skill | [`hithink-finance` Skill](../skills/hithink-finance/SKILL.md) |
+| 关注后续客户端接入进展 | [了解并下载同花顺AI客户端](https://lumi.10jqka.com.cn/?channel=Hithink-API) |
 | 浏览代码样例和金融看板灵感 | [示例入口](../examples/README.md) |
+
+当前可通过 API、MCP、CLI、Python SDK 和 Agent Skill 接入金融数据。同花顺AI客户端尚未发布接入本项目数据源的版本，后续版本计划接入，敬请期待。
 
 ## 文档边界
 

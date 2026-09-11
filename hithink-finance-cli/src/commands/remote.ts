@@ -60,6 +60,18 @@ function integer(value: string): number {
   return parsed;
 }
 
+function number(value: string): number {
+  const parsed = Number(value);
+  if (!Number.isFinite(parsed)) throw new InvalidArgumentError('expected a finite number');
+  return parsed;
+}
+
+function boolean(value: string): boolean {
+  if (value === 'true') return true;
+  if (value === 'false') return false;
+  throw new InvalidArgumentError('expected true or false');
+}
+
 /**
  * 将单个能力描述符的 option 注册到 Commander 命令上
  *
@@ -83,6 +95,8 @@ function addDescriptorOption(
     localizeText(context.language, descriptor.description),
   );
   if (descriptor.type === 'integer') option.argParser(integer);
+  if (descriptor.type === 'number') option.argParser(number);
+  if (descriptor.type === 'boolean' && descriptor.flags.includes('<')) option.argParser(boolean);
   // --thscodes 支持多次传入并自动逗号拼接
   if (descriptor.flags.startsWith('--thscodes '))
     option.argParser((value: string, previous: string | undefined) =>

@@ -39,12 +39,12 @@ test('doctor reports actionable local diagnostics without exposing credentials',
       ok: true,
       command: 'doctor',
       data: {
-        runtime: { package_version: '0.1.8', node_version: expect.any(String) },
+        runtime: { package_version: '0.1.10', node_version: expect.any(String) },
         config: { profile: 'default', database: { exists: false } },
         authentication: { configured: true, source: 'environment' },
         data_lock: { present: true, pid: process.pid, command: 'data.sync' },
         duckdb: { available: true },
-        skills: { skill_count: 10, targets_verified: false, target_status: 'not-verified' },
+        skills: { skill_count: 12, targets_verified: false, target_status: 'not-verified' },
       },
     });
   } finally {

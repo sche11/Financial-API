@@ -8,8 +8,16 @@ import {
 describe('DuckDB resource governance', () => {
   test('uses conservative defaults and validated environment overrides', () => {
     expect(duckDbRuntimeOptions({}, 16 * 1024 ** 3, 16)).toEqual({
-      memory_limit: '1024MiB',
+      memory_limit: '4096MiB',
       threads: '4',
+    });
+    expect(duckDbRuntimeOptions({}, 4 * 1024 ** 3, 8)).toEqual({
+      memory_limit: '2048MiB',
+      threads: '4',
+    });
+    expect(duckDbRuntimeOptions({}, 512 * 1024 ** 2, 2)).toEqual({
+      memory_limit: '256MiB',
+      threads: '2',
     });
     expect(
       duckDbRuntimeOptions(

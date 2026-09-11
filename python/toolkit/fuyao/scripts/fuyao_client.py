@@ -17,6 +17,7 @@ https://fuyao.aicubes.cn/llms-full.txt; do not reproduce them in docstrings here
 from __future__ import annotations
 
 import json
+import math
 import re
 import time
 from dataclasses import dataclass
@@ -46,6 +47,8 @@ AssetType = Literal[
     "fund-etf",
     "fund-lof",
     "fund-reits",
+    "futures",
+    "options",
 ]
 FundRange = Literal[
     "week", "month", "tmonth", "hyear", "year", "twoyear", "tyear", "fyear"
@@ -61,6 +64,8 @@ _ASSET_TYPES = {
     "fund-etf",
     "fund-lof",
     "fund-reits",
+    "futures",
+    "options",
 }
 _FUND_RANGES = {
     "week", "month", "tmonth", "hyear", "year", "twoyear", "tyear", "fyear"
@@ -111,7 +116,7 @@ def _token() -> str:
     return tok
 
 
-def _get(path: str, params: dict[str, Any]) -> dict[str, Any]:
+def _get(path: str, params: dict[str, Any]) -> Any:
     """Low-level GET with retry on RETRY_CODES / network errors. Returns the
     response envelope `data` payload; raises FuyaoApiError on business failure.
     """
@@ -135,7 +140,8 @@ def _get(path: str, params: dict[str, Any]) -> dict[str, Any]:
             continue
         code = payload.get("code", -1)
         if code == 0:
-            return payload.get("data") or {}
+            data = payload.get("data")
+            return {} if data is None else data
         if code in RETRY_CODES and attempt < MAX_RETRIES - 1:
             time.sleep(RETRY_BASE_SECONDS * (2**attempt))
             continue
@@ -1111,6 +1117,154 @@ def fund_portfolio_asset_allocation(thscode: str) -> dict[str, Any]:
     return _fund_detail("/api/fund/portfolio/asset-allocation", thscode)
 
 
+def _json_query(value: str, field: str, expected: type | tuple[type, ...]) -> Any:
+    if not isinstance(value, str) or not value.strip():
+        raise ValueError(f"{field} must be a non-empty JSON string")
+    try:
+        parsed = json.loads(value)
+    except json.JSONDecodeError as exc:
+        raise ValueError(f"{field} must be valid JSON") from exc
+    if not isinstance(parsed, expected):
+        raise ValueError(f"{field} has an invalid JSON structure")
+    return parsed
+
+
+def _json_integer(value: Any, field: str) -> None:
+    if isinstance(value, bool) or not isinstance(value, int):
+        raise ValueError(f"{field} must be an integer")
+
+
+def _validate_index_info(values: Any, field: str) -> None:
+    if not isinstance(values, list):
+        raise ValueError(f"{field} must contain an index array")
+    for item in values:
+        if not isinstance(item, dict) or not isinstance(item.get("index_id"), str) or not item["index_id"]:
+            raise ValueError(f"{field} contains an invalid index_id")
+
+
+def fund_backtest_indicators() -> list[dict[str, Any] | None]:
+    return _get("/api/fund/backtest/indicators", {})
+
+
+def fund_backtest_result(
+    thscode: str,
+    buy_conditions: str,
+    sell_conditions: str,
+    buy_frequency_type: str,
+    max_buy_times: int | float,
+    per_buy_amount: int | float,
+) -> dict[str, Any]:
+    normalized_code = _validate_fund_target(thscode)
+    for value, field in ((buy_conditions, "buy_conditions"), (sell_conditions, "sell_conditions")):
+        _json_query(value, field, (dict, list))
+    frequency = _required_identifier(buy_frequency_type, "buy_frequency_type")
+    for value, field in ((max_buy_times, "max_buy_times"), (per_buy_amount, "per_buy_amount")):
+        if isinstance(value, bool) or not isinstance(value, (int, float)) or not math.isfinite(value):
+            raise ValueError(f"{field} must be a finite number")
+    return _get(
+        "/api/fund/backtest/result",
+        {
+            "thscode": normalized_code,
+            "buy_conditions": buy_conditions,
+            "sell_conditions": sell_conditions,
+            "buy_frequency_type": frequency,
+            "max_buy_times": max_buy_times,
+            "per_buy_amount": per_buy_amount,
+        },
+    )
+
+
+def fund_indicators_line(indexes: str, time_range: str) -> dict[str, Any]:
+    groups = _json_query(indexes, "indexes", list)
+    for group in groups:
+        if not isinstance(group, dict) or not isinstance(group.get("thscodes"), list):
+            raise ValueError("indexes contains an invalid thscodes array")
+        for thscode in group["thscodes"]:
+            try:
+                _validate_fund_target(thscode)
+            except ValueError as exc:
+                raise ValueError("indexes contains an invalid thscode") from exc
+        _validate_index_info(group.get("index_info"), "indexes")
+    period = _json_query(time_range, "time_range", dict)
+    if not isinstance(period.get("time_type"), str) or not period["time_type"]:
+        raise ValueError("time_range requires time_type")
+    for field in ("start", "end", "offset"):
+        if field in period:
+            _json_integer(period[field], f"time_range.{field}")
+    if "start" in period and "end" in period and period["start"] > period["end"]:
+        raise ValueError("time_range end must be >= start")
+    return _get("/api/fund/indicators/line", {"indexes": indexes, "time_range": time_range})
+
+
+def fund_indicators_table(
+    *,
+    code_selectors: str | None = None,
+    indexes: str | None = None,
+    page_info: str | None = None,
+    sort: str | None = None,
+) -> dict[str, Any]:
+    if code_selectors is not None:
+        selectors = _json_query(code_selectors, "code_selectors", dict)
+        include = selectors.get("include")
+        if include is not None and not isinstance(include, list):
+            raise ValueError("code_selectors.include must be an array")
+        for selector in include or []:
+            if not isinstance(selector, dict) or not isinstance(selector.get("type"), str):
+                raise ValueError("code_selectors contains an invalid selector")
+            securities = selector["type"] in ("stock_code", "fund_code")
+            values = selector.get("thscodes" if securities else "values")
+            if not isinstance(values, list) or (securities and "values" in selector):
+                raise ValueError("code_selectors contains an invalid selector")
+            if securities:
+                for thscode in values:
+                    _validate_fund_target(thscode)
+    if indexes is not None:
+        parsed_indexes = _json_query(indexes, "indexes", list)
+        _validate_index_info(parsed_indexes, "indexes")
+        for item in parsed_indexes:
+            if "timestamp" in item:
+                _json_integer(item["timestamp"], "indexes.timestamp")
+    if page_info is not None:
+        page = _json_query(page_info, "page_info", dict)
+        for field in ("page_begin", "page_size", "code_begin", "code_page_size"):
+            if field in page:
+                _json_integer(page[field], f"page_info.{field}")
+    if sort is not None:
+        orders = _json_query(sort, "sort", list)
+        for order in orders:
+            if not isinstance(order, dict) or not isinstance(order.get("type"), str):
+                raise ValueError("sort contains an invalid order")
+            _json_integer(order.get("idx"), "sort.idx")
+    return _get(
+        "/api/fund/indicators/table",
+        {"code_selectors": code_selectors, "indexes": indexes, "page_info": page_info, "sort": sort},
+    )
+
+
+def _fund_quota(
+    path: str, tab: str, buy: bool | None = None
+) -> list[dict[str, Any] | None]:
+    tabs = _json_query(tab, "tab", list)
+    if any(not isinstance(value, str) or not value.strip() for value in tabs):
+        raise ValueError("tab must be a non-empty JSON string array")
+    if buy is not None and not isinstance(buy, bool):
+        raise ValueError("buy must be boolean")
+    params: dict[str, Any] = {"tab": tab}
+    if buy is not None:
+        params["buy"] = buy
+    return _get(path, params)
+
+
+def fund_quota_summary(tab: str) -> list[dict[str, Any] | None]:
+    return _fund_quota("/api/fund/quota/summary", tab)
+
+
+def fund_quota_list(
+    tab: str, *, buy: bool | None = None
+) -> list[dict[str, Any] | None]:
+    return _fund_quota("/api/fund/quota/list", tab, buy)
+
+
 # ---------------------------------------------------------------------------
 # 22/23. Special data — limit-up pool & limit-up ladder
 # ---------------------------------------------------------------------------
@@ -1424,6 +1578,110 @@ def special_data_dragon_tiger_list(
     )
 
 
+# ---------------------------------------------------------------------------
+# Public futures and options capabilities
+# ---------------------------------------------------------------------------
+
+
+def _derivative_date_range(start_date: str, end_date: str) -> tuple[str, str]:
+    start = _parse_iso_date(start_date, "start_date")
+    end = _parse_iso_date(end_date, "end_date")
+    if start > end:
+        raise ValueError("start_date must be before or equal to end_date")
+    return start_date, end_date
+
+
+def _derivative_session(session: str) -> str:
+    if session not in ("pre_market", "intraday", "post_market"):
+        raise ValueError("session must be pre_market, intraday, or post_market")
+    return session
+
+
+def _derivative_daily(path: str, thscode: str, start: int | None, end: int | None) -> dict[str, Any]:
+    if (start is None) != (end is None):
+        raise ValueError("start and end must be provided together")
+    if start is not None and (start <= 0 or end <= 0 or start > end):
+        raise ValueError("start and end must be positive and start must be <= end")
+    return _get(path, {"thscode": thscode, "start": start, "end": end})
+
+
+def futures_varieties() -> dict[str, Any]:
+    return _get("/api/futures/varieties/list", {})
+
+
+def futures_contract_detail(thscode: str) -> dict[str, Any]:
+    return _get("/api/futures/contracts/detail", {"thscode": thscode})
+
+
+def futures_variety_positions(date: str) -> dict[str, Any]:
+    _parse_iso_date(date, "date")
+    return _get("/api/futures/positions/variety-daily", {"date": date})
+
+
+def futures_company_variety_positions(date: str, varieties: str) -> dict[str, Any]:
+    _parse_iso_date(date, "date")
+    tokens = [value.strip() for value in varieties.split(",")]
+    if not 1 <= len(tokens) <= 5 or any(not value for value in tokens):
+        raise ValueError("varieties must contain 1 to 5 non-empty values")
+    return _get("/api/futures/positions/company-variety-daily", {"date": date, "varieties": varieties})
+
+
+def futures_contract_positions(thscode: str, variety: str, date: str) -> dict[str, Any]:
+    _parse_iso_date(date, "date")
+    return _get("/api/futures/positions/contract-daily", {"thscode": thscode, "variety": variety, "date": date})
+
+
+def futures_contract_position_history(thscode: str, variety: str, company: str, start_date: str) -> dict[str, Any]:
+    _parse_iso_date(start_date, "start_date")
+    return _get("/api/futures/positions/contract-historical", {"thscode": thscode, "variety": variety, "company": company, "start_date": start_date})
+
+
+def futures_position_companies() -> dict[str, Any]:
+    return _get("/api/futures/positions/company-list", {})
+
+
+def futures_warehouse_receipts(thscode: str, start_date: str, end_date: str) -> dict[str, Any]:
+    _derivative_date_range(start_date, end_date)
+    return _get("/api/futures/warehouse-receipts/historical", {"thscode": thscode, "start_date": start_date, "end_date": end_date})
+
+
+def futures_latest_basis() -> dict[str, Any]:
+    return _get("/api/futures/basis/main-continuous-latest", {})
+
+
+def futures_basis_history(thscode: str, *, spot_indicator_id: str | None = None) -> dict[str, Any]:
+    return _get("/api/futures/basis/historical", {"thscode": thscode, "spot_indicator_id": spot_indicator_id})
+
+
+def futures_trading_schedule(thscode: str, start_date: str, end_date: str) -> dict[str, Any]:
+    _derivative_date_range(start_date, end_date)
+    return _get("/api/futures/calendar/trading-schedule", {"thscode": thscode, "start_date": start_date, "end_date": end_date})
+
+
+def futures_intraday(thscode: str, *, session: str = "intraday") -> dict[str, Any]:
+    return _get("/api/futures/prices/intraday", {"thscode": thscode, "session": _derivative_session(session)})
+
+
+def futures_daily(thscode: str, *, start: int | None = None, end: int | None = None) -> dict[str, Any]:
+    return _derivative_daily("/api/futures/prices/daily", thscode, start, end)
+
+
+def options_varieties() -> dict[str, Any]:
+    return _get("/api/options/varieties/list", {})
+
+
+def options_contract_detail(thscode: str) -> dict[str, Any]:
+    return _get("/api/options/contracts/detail", {"thscode": thscode})
+
+
+def options_intraday(thscode: str, *, session: str = "intraday") -> dict[str, Any]:
+    return _get("/api/options/prices/intraday", {"thscode": thscode, "session": _derivative_session(session)})
+
+
+def options_daily(thscode: str, *, start: int | None = None, end: int | None = None) -> dict[str, Any]:
+    return _derivative_daily("/api/options/prices/daily", thscode, start, end)
+
+
 __all__ = [
     "FuyaoApiError",
     "tickers_search",
@@ -1471,6 +1729,12 @@ __all__ = [
     "fund_portfolio_bond_history",
     "fund_portfolio_bond_report_dates",
     "fund_portfolio_asset_allocation",
+    "fund_backtest_indicators",
+    "fund_backtest_result",
+    "fund_indicators_line",
+    "fund_indicators_table",
+    "fund_quota_summary",
+    "fund_quota_list",
     "special_data_limit_up_pool",
     "special_data_limit_down_pool",
     "special_data_limit_break_pool",
@@ -1482,4 +1746,21 @@ __all__ = [
     "special_data_hot_stock_list_history",
     "special_data_hot_stock_rank_trend",
     "special_data_dragon_tiger_list",
+    "futures_varieties",
+    "futures_contract_detail",
+    "futures_variety_positions",
+    "futures_company_variety_positions",
+    "futures_contract_positions",
+    "futures_contract_position_history",
+    "futures_position_companies",
+    "futures_warehouse_receipts",
+    "futures_latest_basis",
+    "futures_basis_history",
+    "futures_trading_schedule",
+    "futures_intraday",
+    "futures_daily",
+    "options_varieties",
+    "options_contract_detail",
+    "options_intraday",
+    "options_daily",
 ]

@@ -11,6 +11,8 @@
 | 指数/板块目录、成分与行情 | `hithink-finance-index` | `index *` |
 | 涨停、异动、热榜、龙虎榜 | `hithink-finance-special-data` | `special *` |
 | 基金资料、净值、收益、持仓、持有人、ETF/LOF 行情 | `hithink-finance-fund` | `fund *` |
+| 期货品种、合约、持仓、仓单、基差、交易日程与行情 | `hithink-finance-futures` | `futures *` |
+| 期权品种、合约与行情 | `hithink-finance-options` | `options *` |
 | 建库、同步、状态、校验、修复、SQL、导出 | `hithink-finance-data` | `data *` 与 `db *` |
 | 多步骤研究、口径组合与大结果工作流 | `hithink-finance-research` | 跨领域研究编排 |
 | 认证、全局规则、Skills 与生命周期 | `hithink-finance-shared` | `auth/skills/doctor/update/uninstall` |

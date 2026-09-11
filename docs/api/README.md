@@ -41,7 +41,8 @@ curl 'https://fuyao.aicubes.cn/api/meta/tickers/search?q=600519&limit=1' \
 | 交易日历 | [交易日历端点](endpoints-calendar.md) |
 | A 股集合竞价快照与短期基准 | [集合竞价端点](endpoints-auction.md) |
 | 指数/板块目录、成分股、指数行情 | [指数与板块端点](endpoints-index.md) |
-| 基金资料、经理、净值、收益、持仓、财务、资讯和场内行情 | [公募基金端点](endpoints-fund.md) |
+| 基金资料、经理、净值、收益、持仓、财务、资讯、回测、指标、QDII 额度和场内行情 | [公募基金端点](endpoints-fund.md) |
+| 期货与期权品种、合约、持仓、基差、日程和行情 | [期货与期权端点](endpoints-derivatives.md) |
 | 涨停、跌停、炸板、连板、异动、热榜、龙虎榜 | [特色数据端点](endpoints-special-data.md) |
 | 全市场 Parquet 与本地建库数据源 | [全市场数据导出](endpoints-market-dumps.md) |
 
